@@ -55,6 +55,27 @@ document.addEventListener('DOMContentLoaded', () => {
     fadeElements.forEach(el => observer.observe(el));
   }
 
+  // --- Service detail scroll animations ---
+  const serviceImages = document.querySelectorAll('.service-detail-image');
+  const serviceContents = document.querySelectorAll('.service-detail-content');
+  const inViewElements = [...serviceImages, ...serviceContents];
+
+  if (inViewElements.length > 0) {
+    const serviceObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in-view');
+            serviceObserver.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.15, rootMargin: '0px 0px -60px 0px' }
+    );
+
+    inViewElements.forEach(el => serviceObserver.observe(el));
+  }
+
   // --- Active nav link highlighting ---
   const currentPage = window.location.pathname.split('/').pop() || 'index.html';
   const navLinks = document.querySelectorAll('.nav-links a');

@@ -858,8 +858,9 @@ p {
   grid-template-columns: 1fr 1.5fr;
   gap: 3rem;
   align-items: center;
-  padding: 3rem 0;
+  padding: 4rem 0;
   border-bottom: 1px solid rgba(212, 197, 178, 0.5);
+  position: relative;
 }
 
 .service-detail:last-child {
@@ -874,20 +875,109 @@ p {
   direction: ltr;
 }
 
+/* Image container with overflow hidden for zoom effect */
+.service-detail-image {
+  overflow: hidden;
+  border-radius: 8px;
+  position: relative;
+}
+
 .service-detail-image .placeholder-image {
   height: 300px;
   width: 100%;
   border-radius: 8px;
+  transition: transform 0.8s ease, filter 0.8s ease;
+}
+
+.service-detail-image:hover .placeholder-image {
+  transform: scale(1.06);
+  filter: brightness(1.05);
+}
+
+/* Accent line that animates in */
+.service-detail-content {
+  position: relative;
+  padding-left: 1.5rem;
+  border-left: 3px solid transparent;
+  transition: border-color 0.6s ease;
+}
+
+.service-detail-content.in-view {
+  border-left-color: var(--color-fig-accent);
+}
+
+.service-detail:nth-child(even) .service-detail-content {
+  padding-left: 0;
+  padding-right: 1.5rem;
+  border-left: none;
+  border-right: 3px solid transparent;
+}
+
+.service-detail:nth-child(even) .service-detail-content.in-view {
+  border-right-color: var(--color-fig-accent);
 }
 
 .service-detail-content h3 {
   font-size: 1.5rem;
   margin-bottom: 0.75rem;
+  transition: color 0.3s ease;
+}
+
+.service-detail:hover .service-detail-content h3 {
+  color: var(--color-fig-accent);
 }
 
 .service-detail-content p {
   color: #555;
   margin-bottom: 1.25rem;
+}
+
+/* Staggered fade-in for content children */
+.service-detail-content.in-view h3 {
+  animation: fadeSlideUp 0.5s ease both;
+}
+
+.service-detail-content.in-view p:nth-of-type(1) {
+  animation: fadeSlideUp 0.5s 0.1s ease both;
+}
+
+.service-detail-content.in-view p:nth-of-type(2) {
+  animation: fadeSlideUp 0.5s 0.2s ease both;
+}
+
+.service-detail-content.in-view .btn {
+  animation: fadeSlideUp 0.5s 0.3s ease both;
+}
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Image parallax-like slide in */
+.service-detail-image {
+  opacity: 0;
+  transform: translateX(-30px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+.service-detail-image.in-view {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.service-detail:nth-child(even) .service-detail-image {
+  transform: translateX(30px);
+}
+
+.service-detail:nth-child(even) .service-detail-image.in-view {
+  transform: translateX(0);
 }
 
 /* --- Testimonial Cards --- */
@@ -1642,6 +1732,32 @@ p {
 
   .service-detail:nth-child(even) {
     direction: ltr;
+  }
+
+  .service-detail-content {
+    padding-left: 1rem;
+  }
+
+  .service-detail:nth-child(even) .service-detail-content {
+    padding-right: 0;
+    padding-left: 1rem;
+    border-right: none;
+    border-left: 3px solid transparent;
+  }
+
+  .service-detail:nth-child(even) .service-detail-content.in-view {
+    border-right: none;
+    border-left-color: var(--color-fig-accent);
+  }
+
+  .service-detail-image,
+  .service-detail:nth-child(even) .service-detail-image {
+    transform: translateY(20px);
+  }
+
+  .service-detail-image.in-view,
+  .service-detail:nth-child(even) .service-detail-image.in-view {
+    transform: translateY(0);
   }
 
   .about-full {
