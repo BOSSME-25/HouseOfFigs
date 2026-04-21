@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nutrition Quiz | House of Figs</title>
+  <meta name="description" content="Take this 2-minute quiz to discover which nutrients your body may be missing — and get a free guide to start nourishing your way back to balance.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    /* ===== Quiz Page Styles ===== */
+
+    /* Hero gradient background */
+    .hero--quiz {
+      background: linear-gradient(135deg, #D4C5B2 0%, #6B7F5E 100%);
+    }
+
+    .hero--quiz .hero-content {
+      max-width: 660px;
+    }
+
+    .hero--quiz p {
+      font-size: 1.0625rem;
+    }
+
+    /* Progress bar */
+    .quiz-progress {
+      max-width: 600px;
+      margin: 0 auto 2.5rem;
+      text-align: center;
+    }
+
+    .quiz-progress-label {
+      font-family: var(--font-body);
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--color-olive-leaf);
+      margin-bottom: 0.75rem;
+      letter-spacing: 0.03em;
+    }
+
+    .quiz-progress-track {
+      width: 100%;
+      height: 6px;
+      background-color: var(--color-warm-sand);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .quiz-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--color-olive-leaf), var(--color-fig-accent));
+      border-radius: 3px;
+      transition: width 0.5s ease;
+      width: 0%;
+    }
+
+    /* Quiz container */
+    .quiz-container {
+      max-width: 680px;
+      margin: 0 auto;
+      position: relative;
+      min-height: 380px;
+    }
+
+    /* Question slide */
+    .quiz-question {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      opacity: 0;
+      transform: translateX(40px);
+      pointer-events: none;
+      transition: opacity 0.45s ease, transform 0.45s ease;
+    }
+
+    .quiz-question.active {
+      opacity: 1;
+      transform: translateX(0);
+      pointer-events: auto;
+      position: relative;
+    }
+
+    .quiz-question.exit {
+      opacity: 0;
+      transform: translateX(-40px);
+      pointer-events: none;
+    }
+
+    .quiz-question h3 {
+      font-family: var(--font-heading);
+      font-size: clamp(1.375rem, 3vw, 1.75rem);
+      color: var(--color-deep-fig);
+      text-align: center;
+      margin-bottom: 2rem;
+      line-height: 1.35;
+    }
+
+    /* Answer cards */
+    .quiz-answers {
+      display: flex;
+      flex-direction: column;
+      gap: 0.875rem;
+    }
+
+    .quiz-answer {
+      background-color: var(--color-white);
+      border: 2px solid var(--color-warm-sand);
+      border-radius: 8px;
+      padding: 1.25rem 1.5rem;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      font-family: var(--font-body);
+      font-size: 1rem;
+      color: var(--color-text-dark);
+      line-height: 1.6;
+      text-align: left;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .quiz-answer:hover {
+      border-color: var(--color-olive-leaf);
+      background-color: rgba(107, 127, 94, 0.04);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(74, 55, 40, 0.08);
+    }
+
+    .quiz-answer.selected {
+      border-color: var(--color-fig-accent);
+      background-color: rgba(139, 94, 90, 0.06);
+      box-shadow: 0 4px 20px rgba(139, 94, 90, 0.12);
+    }
+
+    .quiz-answer.selected::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background-color: var(--color-fig-accent);
+    }
+
+    /* Results section */
+    .quiz-results {
+      display: none;
+      animation: fadeInUp 0.7s ease forwards;
+    }
+
+    .quiz-results.visible {
+      display: block;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .result-profile {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .result-profile-badge {
+      display: inline-block;
+      padding: 0.5rem 1.5rem;
+      background-color: var(--color-fig-accent);
+      color: var(--color-white);
+      font-family: var(--font-body);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border-radius: 20px;
+      margin-bottom: 1.25rem;
+    }
+
+    .result-profile h2 {
+      font-family: var(--font-heading);
+      font-size: clamp(2rem, 4.5vw, 3rem);
+      color: var(--color-deep-fig);
+      margin-bottom: 0.5rem;
+    }
+
+    .result-profile-subtitle {
+      font-family: var(--font-heading);
+      font-style: italic;
+      font-size: 1.25rem;
+      color: var(--color-fig-accent);
+      margin-bottom: 1.5rem;
+    }
+
+    .result-profile-description {
+      max-width: 600px;
+      margin: 0 auto;
+      color: #555;
+      font-size: 1.0625rem;
+      line-height: 1.8;
+    }
+
+    /* Missing colors section */
+    .result-colors {
+      margin-bottom: 3rem;
+    }
+
+    .result-colors h3 {
+      text-align: center;
+      font-family: var(--font-heading);
+      font-size: 1.5rem;
+      color: var(--color-deep-fig);
+      margin-bottom: 2rem;
+    }
+
+    .color-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .color-card {
+      background-color: var(--color-white);
+      border-radius: 8px;
+      overflow: hidden;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      animation: fadeInUp 0.6s ease forwards;
+    }
+
+    .color-card:nth-child(2) { animation-delay: 0.1s; }
+    .color-card:nth-child(3) { animation-delay: 0.2s; }
+    .color-card:nth-child(4) { animation-delay: 0.3s; }
+
+    .color-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 30px rgba(74, 55, 40, 0.1);
+    }
+
+    .color-card-bar {
+      height: 8px;
+      width: 100%;
+    }
+
+    .color-card-body {
+      padding: 1.5rem;
+    }
+
+    .color-card-name {
+      font-family: var(--font-heading);
+      font-weight: 600;
+      font-size: 1.125rem;
+      color: var(--color-deep-fig);
+      margin-bottom: 0.5rem;
+    }
+
+    .color-card-foods {
+      font-size: 0.9375rem;
+      color: #666;
+      line-height: 1.6;
+    }
+
+    /* Body systems tags */
+    .result-systems {
+      margin-bottom: 3rem;
+    }
+
+    .result-systems h3 {
+      text-align: center;
+      font-family: var(--font-heading);
+      font-size: 1.5rem;
+      color: var(--color-deep-fig);
+      margin-bottom: 1.5rem;
+    }
+
+    .system-tags {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.75rem;
+    }
+
+    .system-tag {
+      display: inline-block;
+      padding: 0.5rem 1.25rem;
+      background-color: var(--color-soft-cream);
+      border: 1.5px solid var(--color-warm-sand);
+      border-radius: 24px;
+      font-family: var(--font-body);
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--color-deep-fig);
+      animation: fadeInUp 0.5s ease forwards;
+    }
+
+    .system-tag:nth-child(2) { animation-delay: 0.05s; }
+    .system-tag:nth-child(3) { animation-delay: 0.1s; }
+    .system-tag:nth-child(4) { animation-delay: 0.15s; }
+
+    /* Divider */
+    .result-divider {
+      width: 60px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--color-warm-sand), var(--color-fig-accent));
+      margin: 3rem auto;
+      border: none;
+    }
+
+    /* Email gate section */
+    .email-gate {
+      text-align: center;
+      max-width: 600px;
+      margin: 0 auto 3rem;
+      padding: 3rem 2rem;
+      background-color: var(--color-white);
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(74, 55, 40, 0.06);
+    }
+
+    .email-gate h3 {
+      font-family: var(--font-heading);
+      font-size: 1.75rem;
+      color: var(--color-deep-fig);
+      margin-bottom: 1rem;
+    }
+
+    .email-gate p {
+      margin: 0 auto 1rem;
+      color: #555;
+      font-size: 1rem;
+      line-height: 1.7;
+    }
+
+    .email-gate .email-gate-subtext {
+      font-family: var(--font-heading);
+      font-style: italic;
+      color: var(--color-olive-leaf);
+      font-size: 0.9375rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .email-gate .ml-embedded {
+      max-width: 440px;
+      margin: 0 auto;
+    }
+
+    /* Retake button */
+    .quiz-retake {
+      text-align: center;
+      margin-top: 2rem;
+    }
+
+    .quiz-retake button {
+      background: none;
+      border: none;
+      font-family: var(--font-heading);
+      font-style: italic;
+      font-size: 1rem;
+      color: var(--color-fig-accent);
+      cursor: pointer;
+      border-bottom: 1px solid transparent;
+      transition: border-color var(--transition-base);
+      padding: 0;
+    }
+
+    .quiz-retake button:hover {
+      border-bottom-color: var(--color-fig-accent);
+    }
+
+    /* CTA section */
+    .quiz-cta {
+      text-align: center;
+    }
+
+    .quiz-cta h2 {
+      margin-bottom: 1rem;
+    }
+
+    .quiz-cta p {
+      margin: 0 auto 2rem;
+      max-width: 600px;
+      color: rgba(245, 240, 234, 0.85);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .quiz-container {
+        min-height: 420px;
+      }
+
+      .quiz-answer {
+        padding: 1rem 1.25rem;
+        font-size: 0.9375rem;
+      }
+
+      .color-cards {
+        grid-template-columns: 1fr;
+        max-width: 360px;
+      }
+
+      .email-gate {
+        padding: 2rem 1.25rem;
+      }
+
+      .result-profile-description {
+        font-size: 1rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .quiz-question h3 {
+        font-size: 1.25rem;
+      }
+
+      .system-tags {
+        gap: 0.5rem;
+      }
+
+      .system-tag {
+        font-size: 0.8125rem;
+        padding: 0.4rem 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==================== HEADER ==================== -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="site-logo">
+        <img src="images/logo.png" alt="House of Figs logo" class="logo-img">
+        <span class="logo-text">House of Figs</span>
+      </a>
+      <button class="menu-toggle" aria-label="Toggle navigation menu">
+        <span></span><span></span><span></span>
+      </button>
+      <nav class="main-nav" role="navigation" aria-label="Main navigation">
+        <ul class="nav-links">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="about.html">About</a></li>
+          <li><a href="services.html">Services</a></li>
+          <li><a href="testimonials.html">Testimonials</a></li>
+          <li><a href="blog.html">Blog</a></li>
+          <li><a href="podcast.html">Podcast</a></li>
+          <li><a href="contact.html">Contact</a></li>
+          <li><a href="quiz.html" class="active">Quiz</a></li>
+        </ul>
+        <a href="https://calendly.com/houseoffigscompany/30min" target="_blank" rel="noopener" class="btn btn--primary nav-cta">Book a Consultation</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ==================== HERO ==================== -->
+    <section class="hero hero--page hero--quiz">
+      <div class="hero-overlay" style="background: linear-gradient(180deg, rgba(74,55,40,0.3) 0%, rgba(74,55,40,0.45) 100%);"></div>
+      <div class="hero-content" style="text-align: center;">
+        <h1>What Does Your Plate Say About Your Health?</h1>
+        <p>Take this 2-minute quiz to discover which nutrients your body may be missing &mdash; and get a free guide to start nourishing your way back to balance.</p>
+      </div>
+    </section>
+
+    <!-- ==================== QUIZ ==================== -->
+    <section class="section section--cream" id="quiz-section">
+      <div class="container">
+
+        <!-- Progress -->
+        <div class="quiz-progress" id="quiz-progress">
+          <div class="quiz-progress-label" id="progress-label">Question 1 of 7</div>
+          <div class="quiz-progress-track">
+            <div class="quiz-progress-fill" id="progress-fill"></div>
+          </div>
+        </div>
+
+        <!-- Questions -->
+        <div class="quiz-container" id="quiz-container">
+
+          <!-- Q1 -->
+          <div class="quiz-question active" data-question="0">
+            <h3>How would you describe your energy throughout the day?</h3>
+            <div class="quiz-answers">
+              <button class="quiz-answer" data-scores='{"brown":0,"yellow":0}'>Steady and consistent</button>
+              <button class="quiz-answer" data-scores='{"brown":2,"yellow":2}'>I crash in the afternoon</button>
+              <button class="quiz-answer" data-scores='{"purple":2,"red":2,"brown":1}'>I&rsquo;m exhausted before the day even starts</button>
+            </div>
+          </div>
+
+          <!-- Q2 -->
+          <div class="quiz-question" data-question="1">
+            <h3>Do you regularly experience joint pain, bloating, or skin irritation?</h3>
+            <div class="quiz-answers">
+              <button class="quiz-answer" data-scores='{}'>Rarely or never</button>
+              <button class="quiz-answer" data-scores='{"red":1,"blue":1}'>Sometimes &mdash; it comes and goes</button>
+              <button class="quiz-answer" data-scores='{"red":2,"blue":2,"purple":1}'>Frequently &mdash; it&rsquo;s part of my daily life</button>
+            </div>
+          </div>
+
+          <!-- Q3 -->
+          <div class="quiz-question" data-question="2">
+            <h3>How would you describe your digestion?</h3>
+            <div class="quiz-answers">
+              <button class="quiz-answer" data-scores='{}'>Smooth and regular &mdash; no complaints</button>
+              <button class="quiz-answer" data-scores='{"white":2,"brown":2}'>Bloating or discomfort after meals</button>
+              <button class="quiz-answer" data-scores='{"greenwhite":2,"white":2,"brown":1}'>Persistent issues I can&rsquo;t seem to resolve</button>
+            </div>
+          </div>
+
+          <!-- Q4 -->
+          <div class="quiz-question" data-question="3">
+            <h3>Have you noticed changes in your cycle, mood, or skin that feel hormonal?</h3>
+            <div class="quiz-answers">
+              <button class="quiz-answer" data-scores='{}'>No noticeable issues</button>
+              <button class="quiz-answer" data-scores='{"purple":1,"greenwhite":2}'>Some shifts that feel new or uncomfortable</button>
+              <button class="quiz-answer" data-scores='{"green":2,"greenwhite":2,"purple":2}'>Significant changes that affect my daily life</button>
+            </div>
+          </div>
+
+          <!-- Q5 -->
+          <div class="quiz-question" data-question="4">
+            <h3>How often do you get sick or feel run down?</h3>
+            <div class="quiz-answers">
+              <button class="quiz-answer" data-scores='{}'>Rarely &mdash; my immune system is strong</button>
+              <button class="quiz-answer" data-scores='{"orange":1,"yellow":1,"white":1}'>A few times a year, more than I&rsquo;d like</button>
+              <button class="quiz-answer" data-scores='{"orange":2,"yellow":2,"white":2}'>Frequently &mdash; I catch everything going around</button>
+            </div>
+          </div>
+
+          <!-- Q6 -->
+          <div class="quiz-question" data-question="5">
+            <h3>Do you experience brain fog, forgetfulness, or difficulty focusing?</h3>
+            <div class="quiz-answers">
+              <button class="quiz-answer" data-scores='{}'>My mind feels clear and sharp</button>
+              <button class="quiz-answer" data-scores='{"blue":1}'>Occasional fog, especially under stress</button>
+              <button class="quiz-answer" data-scores='{"blue":2,"green":1}'>Regular difficulty that affects my productivity</button>
+            </div>
+          </div>
+
+          <!-- Q7 -->
+          <div class="quiz-question" data-question="6">
+            <h3>Think about what you ate yesterday. How many different colors were on your plate?</h3>
+            <div class="quiz-answers">
+              <button class="quiz-answer" data-scores='{}'>5 or more &mdash; I eat the rainbow regularly</button>
+              <button class="quiz-answer" data-scores='{"red":1,"green":1,"blue":1}'>3 to 4 &mdash; some variety but could be better</button>
+              <button class="quiz-answer" data-scores='{"red":2,"orange":2,"green":2,"blue":2,"purple":1}'>1 to 2 &mdash; mostly the same colors</button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Results (hidden until quiz complete) -->
+        <div class="quiz-results" id="quiz-results">
+
+          <div class="result-profile" id="result-profile">
+            <div class="result-profile-badge">Your Result</div>
+            <h2 id="result-title"></h2>
+            <p class="result-profile-subtitle" id="result-subtitle"></p>
+            <p class="result-profile-description" id="result-description"></p>
+          </div>
+
+          <hr class="result-divider">
+
+          <div class="result-colors">
+            <h3>Your Missing Colors</h3>
+            <div class="color-cards" id="color-cards"></div>
+          </div>
+
+          <div class="result-systems">
+            <h3>Body Systems to Support</h3>
+            <div class="system-tags" id="system-tags"></div>
+          </div>
+
+          <hr class="result-divider">
+
+          <!-- Email Gate -->
+          <div class="email-gate">
+            <h3>Want the Full Guide?</h3>
+            <p>Your results are just the beginning. Download the complete Eat the Rainbow guide &mdash; a detailed functional nutrition resource covering all 9 color families, their most potent foods, key nutrients, and the body systems they support.</p>
+            <p class="email-gate-subtext">It&rsquo;s free. Just join the House of Figs community.</p>
+            <div class="ml-embedded" data-form="KUUEbi"></div>
+          </div>
+
+          <!-- Retake -->
+          <div class="quiz-retake">
+            <button onclick="resetQuiz()">Retake the Quiz &rarr;</button>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== CTA ==================== -->
+    <section class="section section--dark quiz-cta">
+      <div class="container">
+        <h2>Ready for a Personalized Plan?</h2>
+        <p>This quiz gives you a snapshot. A consultation gives you the full picture &mdash; personalized nutrition guidance tailored to your body, your goals, and your life.</p>
+        <a href="https://calendly.com/houseoffigscompany/30min" target="_blank" rel="noopener" class="btn btn--outline-light">Book a Free Consultation</a>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <img src="images/logo.png" alt="House of Figs logo" class="footer-logo-img">
+        <span class="logo-text">House of Figs</span>
+        <span class="tagline">Rooted wellness. Sustainable transformation.</span>
+      </div>
+      <div class="footer-nav">
+        <h4>Navigate</h4>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="about.html">About</a></li>
+          <li><a href="services.html">Services</a></li>
+          <li><a href="testimonials.html">Testimonials</a></li>
+          <li><a href="blog.html">Blog</a></li>
+          <li><a href="podcast.html">Podcast</a></li>
+          <li><a href="contact.html">Contact</a></li>
+          <li><a href="quiz.html">Quiz</a></li>
+        </ul>
+      </div>
+      <div class="footer-social">
+        <h4>Connect</h4>
+        <div class="social-links">
+          <a href="#" class="social-link" aria-label="Instagram">[IG]</a>
+          <a href="#" class="social-link" aria-label="Facebook">[FB]</a>
+          <a href="#" class="social-link" aria-label="Pinterest">[Pin]</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 House of Figs Functional Nutrition. All rights reserved.</p>
+      <p class="tagline" style="font-size: 0.8125rem;">Rooted wellness. Sustainable transformation.</p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+
+  <script>
+    // ===== Quiz Engine =====
+
+    (function() {
+      'use strict';
+
+      // State
+      var currentQuestion = 0;
+      var totalQuestions = 7;
+      var scores = {};
+      var questions = document.querySelectorAll('.quiz-question');
+      var progressFill = document.getElementById('progress-fill');
+      var progressLabel = document.getElementById('progress-label');
+      var quizProgress = document.getElementById('quiz-progress');
+      var quizContainer = document.getElementById('quiz-container');
+      var quizResults = document.getElementById('quiz-results');
+
+      // Profile definitions
+      var profiles = {
+        rebuilder: {
+          title: 'The Rebuilder',
+          subtitle: 'Your body is asking for restoration.',
+          description: 'Based on your answers, your body may be dealing with inflammation, oxidative stress, or cellular wear that\u2019s showing up as fatigue, pain, or brain fog. The good news? The foods that address these issues are some of the most powerful and delicious on the planet.',
+          keys: ['red', 'blue', 'purple'],
+          colors: [
+            { name: 'Red', hex: '#C0392B', foods: 'Tomatoes, cherries, pomegranate' },
+            { name: 'Blue', hex: '#2E5090', foods: 'Wild blueberries, blackberries' },
+            { name: 'Purple', hex: '#7D3C98', foods: 'Beets, red cabbage, figs' }
+          ],
+          systems: ['Heart health', 'Inflammation reduction', 'Brain & memory', 'Hormonal support']
+        },
+        balancer: {
+          title: 'The Balancer',
+          subtitle: 'Your body needs harmony and detox support.',
+          description: 'Your answers suggest your digestive system, hormonal health, or detox pathways could use some extra attention. These are the foundational systems that, when supported, can transform how you feel from the inside out.',
+          keys: ['greenwhite', 'white', 'brown', 'green'],
+          colors: [
+            { name: 'Green-White', hex: '#7CAA2D', foods: 'Broccoli sprouts, Brussels sprouts' },
+            { name: 'White', hex: '#BDC3C7', foods: 'Raw garlic, onions' },
+            { name: 'Brown', hex: '#8B6F47', foods: 'Lentils, oats' },
+            { name: 'Green', hex: '#27AE60', foods: 'Spinach, kale' }
+          ],
+          systems: ['Gut health', 'Estrogen metabolism', 'Liver detox', 'Blood sugar regulation']
+        },
+        energizer: {
+          title: 'The Energizer',
+          subtitle: 'Your body is hungry for fuel and defense.',
+          description: 'Your responses point to an immune system that could use reinforcement and energy levels that aren\u2019t matching your ambition. The right foods can rebuild your reserves and give your body the tools it needs to protect and power itself.',
+          keys: ['orange', 'yellow', 'brown'],
+          colors: [
+            { name: 'Orange', hex: '#E67E22', foods: 'Sweet potato, carrots, turmeric' },
+            { name: 'Yellow', hex: '#D4AC0D', foods: 'Lemon, papaya, pineapple' },
+            { name: 'Brown', hex: '#8B6F47', foods: 'Lentils, oats, quinoa' }
+          ],
+          systems: ['Immune defense', 'Adrenal support', 'Collagen production', 'Nerve & muscle function']
+        }
+      };
+
+      // Initialize progress
+      updateProgress();
+
+      // Attach click handlers to all answer buttons
+      var answers = document.querySelectorAll('.quiz-answer');
+      for (var i = 0; i < answers.length; i++) {
+        answers[i].addEventListener('click', handleAnswer);
+      }
+
+      function handleAnswer(e) {
+        var btn = e.currentTarget;
+        var questionEl = btn.closest('.quiz-question');
+
+        // Prevent double-click
+        if (btn.classList.contains('selected')) return;
+
+        // Remove previous selection in this question
+        var siblings = questionEl.querySelectorAll('.quiz-answer');
+        for (var i = 0; i < siblings.length; i++) {
+          siblings[i].classList.remove('selected');
+        }
+
+        // Mark selected
+        btn.classList.add('selected');
+
+        // Add scores
+        var answerScores = JSON.parse(btn.getAttribute('data-scores'));
+        for (var color in answerScores) {
+          if (answerScores.hasOwnProperty(color)) {
+            scores[color] = (scores[color] || 0) + answerScores[color];
+          }
+        }
+
+        // Auto-advance after delay
+        setTimeout(function() {
+          if (currentQuestion < totalQuestions - 1) {
+            goToQuestion(currentQuestion + 1);
+          } else {
+            showResults();
+          }
+        }, 500);
+      }
+
+      function goToQuestion(index) {
+        // Exit current
+        questions[currentQuestion].classList.remove('active');
+        questions[currentQuestion].classList.add('exit');
+
+        currentQuestion = index;
+
+        // Enter new
+        questions[currentQuestion].classList.remove('exit');
+        questions[currentQuestion].classList.add('active');
+
+        updateProgress();
+
+        // Scroll to quiz section top if needed
+        var rect = quizProgress.getBoundingClientRect();
+        if (rect.top < 0 || rect.top > window.innerHeight * 0.4) {
+          quizProgress.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+
+      function updateProgress() {
+        var pct = ((currentQuestion + 1) / totalQuestions) * 100;
+        progressFill.style.width = pct + '%';
+        progressLabel.textContent = 'Question ' + (currentQuestion + 1) + ' of ' + totalQuestions;
+      }
+
+      function determineProfile() {
+        // Sum scores for each profile's key colors
+        var profileScores = {};
+        for (var name in profiles) {
+          if (profiles.hasOwnProperty(name)) {
+            var total = 0;
+            var keys = profiles[name].keys;
+            for (var i = 0; i < keys.length; i++) {
+              total += (scores[keys[i]] || 0);
+            }
+            profileScores[name] = total;
+          }
+        }
+
+        // Determine winner (tie-break: rebuilder > balancer > energizer)
+        var order = ['rebuilder', 'balancer', 'energizer'];
+        var winner = order[0];
+        var highScore = profileScores[order[0]];
+
+        for (var j = 1; j < order.length; j++) {
+          if (profileScores[order[j]] > highScore) {
+            highScore = profileScores[order[j]];
+            winner = order[j];
+          }
+        }
+
+        return profiles[winner];
+      }
+
+      function showResults() {
+        var profile = determineProfile();
+
+        // Hide quiz elements
+        quizProgress.style.display = 'none';
+        quizContainer.style.display = 'none';
+
+        // Populate results
+        document.getElementById('result-title').textContent = profile.title;
+        document.getElementById('result-subtitle').textContent = profile.subtitle;
+        document.getElementById('result-description').textContent = profile.description;
+
+        // Color cards
+        var cardsContainer = document.getElementById('color-cards');
+        cardsContainer.innerHTML = '';
+        for (var i = 0; i < profile.colors.length; i++) {
+          var c = profile.colors[i];
+          var card = document.createElement('div');
+          card.className = 'color-card';
+          card.innerHTML =
+            '<div class="color-card-bar" style="background-color: ' + c.hex + ';"></div>' +
+            '<div class="color-card-body">' +
+              '<div class="color-card-name">' + c.name + '</div>' +
+              '<div class="color-card-foods">' + c.foods + '</div>' +
+            '</div>';
+          cardsContainer.appendChild(card);
+        }
+
+        // System tags
+        var tagsContainer = document.getElementById('system-tags');
+        tagsContainer.innerHTML = '';
+        for (var j = 0; j < profile.systems.length; j++) {
+          var tag = document.createElement('span');
+          tag.className = 'system-tag';
+          tag.textContent = profile.systems[j];
+          tagsContainer.appendChild(tag);
+        }
+
+        // Show results
+        quizResults.classList.add('visible');
+
+        // Scroll to top of results
+        setTimeout(function() {
+          quizResults.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+      }
+
+      // Reset quiz (exposed globally)
+      window.resetQuiz = function() {
+        // Reset state
+        currentQuestion = 0;
+        scores = {};
+
+        // Clear selections
+        var allAnswers = document.querySelectorAll('.quiz-answer');
+        for (var i = 0; i < allAnswers.length; i++) {
+          allAnswers[i].classList.remove('selected');
+        }
+
+        // Reset question visibility
+        for (var j = 0; j < questions.length; j++) {
+          questions[j].classList.remove('active', 'exit');
+        }
+        questions[0].classList.add('active');
+
+        // Show quiz, hide results
+        quizProgress.style.display = '';
+        quizContainer.style.display = '';
+        quizResults.classList.remove('visible');
+
+        updateProgress();
+
+        // Scroll back to quiz
+        document.getElementById('quiz-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+
+    })();
+  </script>
+
+  <!-- MailerLite Universal -->
+  <script>
+    (function(w,d,e,u,f,l,n){w[f]=w[f]||function(){(w[f].q=w[f].q||[])
+    .push(arguments);},l=d.createElement(e),l.async=1,l.src=u,
+    n=d.getElementsByTagName(e)[0],n.parentNode.insertBefore(l,n);})
+    (window,document,'script','https://assets.mailerlite.com/js/universal.js','ml');
+    ml('account', '2282202');
+  </script>
+  <!-- End MailerLite Universal -->
+</body>
+</html>
