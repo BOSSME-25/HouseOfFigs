@@ -596,6 +596,13 @@
             <h2 id="result-title"></h2>
             <p class="result-profile-subtitle" id="result-subtitle"></p>
             <p class="result-profile-description" id="result-description"></p>
+            <a id="send-to-app"
+               class="btn btn--primary"
+               style="margin-top: 1.5rem; display: inline-flex; align-items: center; gap: 0.5rem;"
+               target="_blank"
+               rel="noopener">
+              Save my result to the Wellness Companion &rarr;
+            </a>
           </div>
 
           <hr class="result-divider">
@@ -681,6 +688,9 @@
 
     (function() {
       'use strict';
+
+      // Wellness Companion app URL — used by the "Save my result" CTA
+      var WELLNESS_APP_URL = 'https://houseoffigs.online';
 
       // State
       var currentQuestion = 0;
@@ -829,11 +839,12 @@
           }
         }
 
-        return profiles[winner];
+        return winner;
       }
 
       function showResults() {
-        var profile = determineProfile();
+        var profileKey = determineProfile();
+        var profile = profiles[profileKey];
 
         // Hide quiz elements
         quizProgress.style.display = 'none';
@@ -868,6 +879,12 @@
           tag.className = 'system-tag';
           tag.textContent = profile.systems[j];
           tagsContainer.appendChild(tag);
+        }
+
+        // Wire up the "Save my result to the Wellness Companion" CTA
+        var sendBtn = document.getElementById('send-to-app');
+        if (sendBtn) {
+          sendBtn.href = WELLNESS_APP_URL + '/quiz-import?profile=' + encodeURIComponent(profileKey);
         }
 
         // Show results
