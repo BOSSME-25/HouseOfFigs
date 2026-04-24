@@ -887,6 +887,18 @@
           sendBtn.href = WELLNESS_APP_URL + '/quiz-import?profile=' + encodeURIComponent(profileKey);
         }
 
+        // GA4: track quiz completion with profile breakdown
+        if (typeof gtag === 'function') {
+          gtag('event', 'quiz_complete', {
+            profile: profileKey,
+            profile_title: profile.title
+          });
+        }
+
+        // MailerLite: tag the email-gate submission with the profile key.
+        // Requires a custom field named "quiz_profile" (text) defined in MailerLite.
+        tagMailerLiteForm(profileKey);
+
         // Show results
         quizResults.classList.add('visible');
 
@@ -894,6 +906,34 @@
         setTimeout(function() {
           quizResults.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 100);
+      }
+
+      // Inject the user's quiz profile into the MailerLite email-gate form so
+      // each subscriber row in MailerLite carries their result. The form is
+      // rendered asynchronously by the MailerLite Universal script, so we
+      // poll for it briefly.
+      function tagMailerLiteForm(profileKey) {
+        var container = document.querySelector('.ml-embedded[data-form="KUUEbi"]');
+        if (!container) return;
+        var attempts = 0;
+        function attempt() {
+          var form = container.querySelector('form');
+          if (form) {
+            var existing = form.querySelector('input[name="fields[quiz_profile]"]');
+            if (existing) {
+              existing.value = profileKey;
+            } else {
+              var hidden = document.createElement('input');
+              hidden.type = 'hidden';
+              hidden.name = 'fields[quiz_profile]';
+              hidden.value = profileKey;
+              form.appendChild(hidden);
+            }
+            return;
+          }
+          if (++attempts < 20) setTimeout(attempt, 500);
+        }
+        attempt();
       }
 
       // Reset quiz (exposed globally)
