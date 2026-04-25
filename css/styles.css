@@ -1946,3 +1946,128 @@ p {
 @media (max-width: 900px) {
   .nav-figatry { display: none; }
 }
+
+/* ====================================================================
+   FIRST-VISIT WELCOME MODAL — "Hi, I'm Bethany"
+   Injected by js/main.js on first visit, dismissed via localStorage
+   ==================================================================== */
+
+.hof-welcome-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 2rem 1rem;
+  background-color: rgba(74, 55, 40, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  overflow-y: auto;
+  opacity: 0;
+  animation: hofWelcomeFade 0.35s ease-out forwards;
+}
+@keyframes hofWelcomeFade { to { opacity: 1; } }
+
+.hof-welcome-modal {
+  position: relative;
+  width: 100%;
+  max-width: 540px;
+  background-color: var(--color-white);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px -12px rgba(74, 55, 40, 0.45);
+  transform: translateY(12px);
+  animation: hofWelcomeRise 0.4s 0.05s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+@keyframes hofWelcomeRise {
+  to { transform: translateY(0); }
+}
+
+.hof-welcome-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 2;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 999px;
+  background-color: rgba(255, 255, 255, 0.92);
+  color: var(--color-deep-fig);
+  cursor: pointer;
+  font-size: 1.25rem;
+  line-height: 1;
+  transition: background-color 0.18s;
+}
+.hof-welcome-close:hover { background-color: var(--color-white); }
+
+.hof-welcome-image {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background-color: var(--color-soft-cream);
+  overflow: hidden;
+}
+.hof-welcome-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+}
+
+.hof-welcome-body { padding: 2rem 2.25rem 1.75rem; }
+
+.hof-welcome-eyebrow {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 0.875rem;
+  color: var(--color-fig-accent);
+  letter-spacing: 0.04em;
+  margin: 0 0 0.5rem;
+}
+
+.hof-welcome-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2.25rem;
+  font-weight: 500;
+  color: var(--color-deep-fig);
+  margin: 0 0 1rem;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.hof-welcome-text p {
+  margin: 0 0 0.85rem;
+  color: rgba(74, 55, 40, 0.82);
+  font-size: 0.9375rem;
+  line-height: 1.7;
+}
+.hof-welcome-text p:last-child { margin-bottom: 0; }
+.hof-welcome-text .hof-welcome-tagline {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 1.0625rem;
+  color: var(--color-fig-accent);
+  margin-top: 0.5rem;
+}
+
+.hof-welcome-actions {
+  display: flex;
+  flex-wrap: wrap-reverse;
+  justify-content: flex-end;
+  gap: 0.625rem;
+  margin-top: 1.5rem;
+}
+.hof-welcome-actions .btn { flex: 0 0 auto; }
+
+@media (max-width: 520px) {
+  .hof-welcome-body { padding: 1.5rem 1.5rem 1.25rem; }
+  .hof-welcome-title { font-size: 1.875rem; }
+  .hof-welcome-actions { flex-direction: column-reverse; }
+  .hof-welcome-actions .btn { width: 100%; text-align: center; }
+}
+
+/* Lock body scroll while the welcome modal is open */
+body.hof-welcome-open { overflow: hidden; }

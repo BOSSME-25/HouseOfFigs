@@ -126,4 +126,77 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // --- First-visit Welcome Modal ("Hi, I'm Bethany") ---
+  // Shows once per browser/device. Dismissal is sticky via localStorage.
+  // Bypass with ?welcome=1 in the URL for easy testing.
+  (function welcomeModal() {
+    var STORAGE_KEY = 'hof-welcome-seen-v1';
+    var force = false;
+    try {
+      var qs = new URLSearchParams(window.location.search);
+      force = qs.get('welcome') === '1';
+    } catch (e) { /* ignore */ }
+
+    try {
+      if (!force && window.localStorage.getItem(STORAGE_KEY)) return;
+    } catch (e) {
+      // If localStorage is unavailable (private mode w/ strict settings),
+      // skip the modal rather than annoying the visitor on every page.
+      return;
+    }
+
+    var overlay = document.createElement('div');
+    overlay.className = 'hof-welcome-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-labelledby', 'hof-welcome-title');
+    overlay.innerHTML =
+      '<div class="hof-welcome-modal">' +
+        '<button type="button" class="hof-welcome-close" aria-label="Close welcome">&times;</button>' +
+        '<div class="hof-welcome-image">' +
+          '<img src="images/bethany.jpg" alt="Bethany Grissum, founder of House of Figs Functional Nutrition">' +
+        '</div>' +
+        '<div class="hof-welcome-body">' +
+          '<p class="hof-welcome-eyebrow">A note from your guide</p>' +
+          '<h2 id="hof-welcome-title" class="hof-welcome-title">Hi, I&rsquo;m Bethany.</h2>' +
+          '<div class="hof-welcome-text">' +
+            '<p>Welcome to House of Figs &mdash; a place of nourishment, fruitfulness, and healing, named for the meaning of my own name, Bethany.</p>' +
+            '<p>However you found us, I&rsquo;m glad you&rsquo;re here. Take your time, look around, and reach out whenever you&rsquo;re ready.</p>' +
+            '<p class="hof-welcome-tagline">Rooted wellness. Sustainable transformation.</p>' +
+          '</div>' +
+          '<div class="hof-welcome-actions">' +
+            '<a href="about.html" class="btn btn--secondary">Read my full story &rarr;</a>' +
+            '<button type="button" class="btn btn--primary" data-hof-welcome-begin>Explore the site</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    function dismiss() {
+      try { window.localStorage.setItem(STORAGE_KEY, '1'); } catch (e) { /* ignore */ }
+      document.body.classList.remove('hof-welcome-open');
+      overlay.remove();
+      document.removeEventListener('keydown', onEsc);
+    }
+
+    function onEsc(e) {
+      if (e.key === 'Escape') dismiss();
+    }
+
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) dismiss();
+    });
+    overlay.querySelector('.hof-welcome-close').addEventListener('click', dismiss);
+    overlay.querySelector('[data-hof-welcome-begin]').addEventListener('click', dismiss);
+    // Also dismiss when the user clicks "Read my full story" so they don't
+    // come back from /about and see the modal again.
+    var aboutLink = overlay.querySelector('a[href="about.html"]');
+    if (aboutLink) aboutLink.addEventListener('click', function () {
+      try { window.localStorage.setItem(STORAGE_KEY, '1'); } catch (e) { /* ignore */ }
+    });
+
+    document.addEventListener('keydown', onEsc);
+    document.body.classList.add('hof-welcome-open');
+    document.body.appendChild(overlay);
+  })();
+
 });
