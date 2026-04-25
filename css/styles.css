@@ -1815,3 +1815,134 @@ p {
     grid-template-columns: 1fr;
   }
 }
+
+/* ====================================================================
+   FIG·ATRY — companion app integration
+   Strong section on home, soft card on interior pages, header nav link
+   ==================================================================== */
+
+/* Strong introduction section (homepage, after hero) */
+.figatry-section {
+  background-color: #faf6ef;
+  padding: 5rem 0;
+  border-top: 1px solid #ece2cf;
+  border-bottom: 1px solid #ece2cf;
+}
+.figatry-section .container {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 3.5rem;
+  align-items: center;
+}
+.figatry-section-image {
+  text-align: center;
+}
+.figatry-section-image img {
+  width: 100%;
+  max-width: 460px;
+  height: auto;
+  display: inline-block;
+}
+.figatry-section-content h2 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2.5rem;
+  margin: 0 0 1.25rem;
+  color: #4A3728;
+  letter-spacing: -0.01em;
+}
+.figatry-section-content p {
+  color: #6c5b4a;
+  margin-bottom: 0.85rem;
+  line-height: 1.7;
+}
+.figatry-section-content .figatry-meta {
+  font-size: 0.875rem;
+  color: #897866;
+  margin: 1.25rem 0 1.75rem;
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
+@media (max-width: 768px) {
+  .figatry-section { padding: 3rem 0; }
+  .figatry-section .container {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    text-align: center;
+  }
+  .figatry-section-content h2 { font-size: 2rem; }
+}
+
+/* Soft CTA card (interior pages) */
+.figatry-card {
+  background-color: #faf6ef;
+  border: 1px solid #e8dec9;
+  border-radius: 14px;
+  padding: 1.75rem 2.25rem;
+  margin: 3.5rem auto 0;
+  max-width: 760px;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  box-shadow: 0 2px 12px rgba(74, 55, 40, 0.04);
+}
+.figatry-card-text {
+  flex: 1 1 280px;
+}
+.figatry-card-text h3 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.5rem;
+  color: #4A3728;
+  margin: 0 0 0.25rem;
+  font-weight: 500;
+}
+.figatry-card-text p {
+  margin: 0;
+  color: #6c5b4a;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+.figatry-card-text .figatry-mark {
+  font-style: italic;
+  color: #4A3728;
+}
+.figatry-card .btn { flex-shrink: 0; }
+@media (max-width: 600px) {
+  .figatry-card {
+    padding: 1.5rem 1.5rem;
+    text-align: center;
+    justify-content: center;
+  }
+  .figatry-card-text { flex: 1 1 100%; }
+}
+
+/* Header nav link */
+.nav-figatry {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.0625rem;
+  color: #6c5b4a;
+  text-decoration: none;
+  margin-right: 1rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  transition: background-color 0.18s, border-color 0.18s, color 0.18s;
+}
+.nav-figatry:hover,
+.nav-figatry:focus {
+  background-color: #f4ebd9;
+  border-color: #e8dec9;
+  color: #4A3728;
+}
+.nav-figatry .nav-figatry-mark {
+  font-style: italic;
+  color: #4A3728;
+  font-weight: 500;
+}
+@media (max-width: 900px) {
+  .nav-figatry { display: none; }
+}
