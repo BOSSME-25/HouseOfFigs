@@ -192,6 +192,106 @@
       line-height: 1.55;
     }
 
+    /* --- Progressive section reveal --- */
+    .intake-section {
+      transition: opacity 0.5s ease, transform 0.5s ease, max-height 0.5s ease;
+    }
+    .intake-section.section-locked {
+      display: none;
+    }
+    .intake-section.section-revealing {
+      animation: sectionIn 0.55s ease forwards;
+    }
+    @keyframes sectionIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .intake-section.section-complete {
+      border-color: rgba(107, 127, 94, 0.4);
+    }
+    .intake-section.section-complete .section-eyebrow::after {
+      content: ' \2713 complete';
+      color: #6B7F5E;
+      font-style: italic;
+      font-size: 0.75rem;
+      letter-spacing: 0.04em;
+      text-transform: none;
+      margin-left: 0.4rem;
+    }
+
+    /* Continue button at bottom of section */
+    .section-continue {
+      margin-top: 1.75rem;
+      padding-top: 1.5rem;
+      border-top: 1px dashed rgba(212, 197, 178, 0.6);
+      text-align: right;
+    }
+    .section-continue button {
+      background-color: #6B7F5E;
+      color: #fff;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.9375rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    .section-continue button:hover {
+      background-color: #4A3728;
+    }
+    .section-continue .section-continue-help {
+      display: none;
+      color: #8B5E5A;
+      font-style: italic;
+      font-size: 0.8125rem;
+      margin-top: 0.5rem;
+      text-align: right;
+    }
+    .section-continue.has-error .section-continue-help {
+      display: block;
+    }
+    .intake-section.section-complete .section-continue {
+      display: none;
+    }
+
+    /* Progress indicator */
+    .intake-progress {
+      max-width: 720px;
+      margin: 0 auto 1.75rem;
+      padding: 0 1rem;
+    }
+    .intake-progress-label {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-size: 0.875rem;
+      color: #6B7F5E;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.5rem;
+      text-align: center;
+    }
+    .intake-progress-track {
+      width: 100%;
+      height: 4px;
+      background-color: #ece2cf;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .intake-progress-fill {
+      height: 100%;
+      width: 16.6%;
+      background: linear-gradient(90deg, #6B7F5E, #8B5E5A);
+      border-radius: 2px;
+      transition: width 0.5s ease;
+    }
+
+    /* Submit area is locked until the last section is reached */
+    .intake-submit.intake-submit-locked {
+      display: none;
+    }
+
     /* 1-10 scale (radio row) */
     .scale-row {
       display: flex;
@@ -400,6 +500,14 @@
       </div>
     </div>
 
+    <!-- ============ Progress indicator ============ -->
+    <div class="intake-progress" aria-hidden="true">
+      <div class="intake-progress-label" id="intake-progress-label">Step 1 of 6</div>
+      <div class="intake-progress-track">
+        <div class="intake-progress-fill" id="intake-progress-fill"></div>
+      </div>
+    </div>
+
     <!-- ============ FORM ============ -->
     <form id="intake-form" class="intake-form" action="https://formspree.io/f/YOUR_FORMSPREE_ID" method="POST">
       <!-- Formspree config: tweak the subject + reply-to -->
@@ -457,10 +565,15 @@
             <label><input type="radio" name="Preferred connection" value="In-person (Phoenix area)"> In-person (Phoenix area)</label>
           </div>
         </div>
+
+        <div class="section-continue">
+          <button type="button" data-continue="1">Continue &rarr;</button>
+          <p class="section-continue-help">Please fill in the required fields above to continue.</p>
+        </div>
       </fieldset>
 
       <!-- ============ Section 2 — Your Story ============ -->
-      <fieldset class="intake-section">
+      <fieldset class="intake-section section-locked">
         <div class="section-eyebrow">Section 2</div>
         <legend>Your story</legend>
         <p class="section-sub">Why you are here &mdash; and where you hope to go.</p>
@@ -535,10 +648,15 @@
           </div>
           <div class="scale-meta"><span>almost none</span><span>plenty</span></div>
         </div>
+
+        <div class="section-continue">
+          <button type="button" data-continue="2">Continue &rarr;</button>
+          <p class="section-continue-help">Please complete this section to continue.</p>
+        </div>
       </fieldset>
 
       <!-- ============ Section 3 — Health Snapshot ============ -->
-      <fieldset class="intake-section">
+      <fieldset class="intake-section section-locked">
         <div class="section-eyebrow">Section 3</div>
         <legend>Quick health snapshot</legend>
         <p class="section-sub">Just the essentials &mdash; we&rsquo;ll go deeper in your consultation.</p>
@@ -571,10 +689,15 @@
           <label class="field-label" for="family">Family health patterns worth noting? <span style="color:#897866;font-weight:400;font-style:italic;">(Heart disease, diabetes, thyroid, autoimmune, cancer, cognitive decline, etc.)</span></label>
           <textarea id="family" name="Family health patterns"></textarea>
         </div>
+
+        <div class="section-continue">
+          <button type="button" data-continue="3">Continue &rarr;</button>
+          <p class="section-continue-help">Please complete this section to continue.</p>
+        </div>
       </fieldset>
 
       <!-- ============ Section 4 — Rainbow Quick-Scan ============ -->
-      <fieldset class="intake-section">
+      <fieldset class="intake-section section-locked">
         <div class="section-eyebrow">Section 4</div>
         <legend>The Rainbow quick-scan</legend>
         <p class="section-sub">Each color family supports a different system in the body. For each, check any symptom you&rsquo;ve noticed consistently over the past 3 months. Patterns matter more than totals &mdash; check as many or as few as apply.</p>
@@ -727,10 +850,15 @@
           <label class="field-label" for="rainbow-stands-out">Looking back at what you just checked &mdash; is there a color family or group of symptoms that stands out as especially persistent for you?</label>
           <textarea id="rainbow-stands-out" name="Rainbow patterns that stand out"></textarea>
         </div>
+
+        <div class="section-continue">
+          <button type="button" data-continue="4">Continue &rarr;</button>
+          <p class="section-continue-help">Please complete this section to continue.</p>
+        </div>
       </fieldset>
 
       <!-- ============ Section 5 — Lifestyle ============ -->
-      <fieldset class="intake-section">
+      <fieldset class="intake-section section-locked">
         <div class="section-eyebrow">Section 5</div>
         <legend>Lifestyle at a glance</legend>
         <p class="section-sub">Your daily rhythms in broad strokes.</p>
@@ -825,10 +953,15 @@
           <label class="field-label" for="typical-day">Briefly describe a typical day of eating <span style="color:#897866;font-weight:400;font-style:italic;">(breakfast, lunch, dinner, snacks)</span></label>
           <textarea id="typical-day" name="Typical day of eating"></textarea>
         </div>
+
+        <div class="section-continue">
+          <button type="button" data-continue="5">Continue &rarr;</button>
+          <p class="section-continue-help">Please complete this section to continue.</p>
+        </div>
       </fieldset>
 
       <!-- ============ Section 6 — Vision & Readiness ============ -->
-      <fieldset class="intake-section">
+      <fieldset class="intake-section section-locked">
         <div class="section-eyebrow">Section 6</div>
         <legend>Vision &amp; readiness</legend>
         <p class="section-sub">What you&rsquo;re hoping for from our time together.</p>
@@ -850,7 +983,7 @@
       </fieldset>
 
       <!-- Submit -->
-      <div class="intake-submit">
+      <div class="intake-submit intake-submit-locked">
         <button type="submit" class="btn btn--primary">Send to Bethany &rarr;</button>
         <p>I&rsquo;ll review your intake before our call so our time together can be focused on <em>you</em>.</p>
         <div id="intake-error" class="intake-error hidden">
@@ -907,9 +1040,81 @@
 
   <script src="js/main.js"></script>
 
-  <!-- AJAX submit to Formspree, then show inline thank-you -->
+  <!-- Progressive section reveal + AJAX submit -->
   <script>
     (function () {
+      // ===== Progressive section reveal =====
+      var sections = document.querySelectorAll('.intake-section');
+      var totalSections = sections.length;
+      var progressFill = document.getElementById('intake-progress-fill');
+      var progressLabel = document.getElementById('intake-progress-label');
+      var submitArea = document.querySelector('.intake-submit');
+      var continueButtons = document.querySelectorAll('[data-continue]');
+      var currentSection = 0;
+
+      function setProgress(stepIndex) {
+        var pct = ((stepIndex + 1) / totalSections) * 100;
+        if (progressFill) progressFill.style.width = pct + '%';
+        if (progressLabel) progressLabel.textContent = 'Step ' + (stepIndex + 1) + ' of ' + totalSections;
+      }
+      setProgress(0);
+
+      function validateSection(section) {
+        var requiredFields = section.querySelectorAll('input[required], textarea[required], select[required]');
+        var allValid = true;
+        for (var i = 0; i < requiredFields.length; i++) {
+          var field = requiredFields[i];
+          if (!field.checkValidity() || (field.value && field.value.trim() === '')) {
+            allValid = false;
+            field.reportValidity();
+            field.focus();
+            break;
+          }
+        }
+        return allValid;
+      }
+
+      function revealNext(currentIndex) {
+        var nextIndex = currentIndex + 1;
+        if (nextIndex >= sections.length) return;
+        var nextSection = sections[nextIndex];
+        nextSection.classList.remove('section-locked');
+        nextSection.classList.add('section-revealing');
+        currentSection = nextIndex;
+        setProgress(nextIndex);
+
+        // If this was the last section, also reveal submit
+        if (nextIndex === sections.length - 1 && submitArea) {
+          submitArea.classList.remove('intake-submit-locked');
+        }
+
+        // Smooth scroll to next section after it animates in
+        setTimeout(function () {
+          var headerOffset = 90;
+          var rect = nextSection.getBoundingClientRect();
+          var targetTop = window.pageYOffset + rect.top - headerOffset;
+          window.scrollTo({ top: targetTop, behavior: 'smooth' });
+        }, 100);
+      }
+
+      for (var i = 0; i < continueButtons.length; i++) {
+        (function (btn) {
+          btn.addEventListener('click', function () {
+            var section = btn.closest('.intake-section');
+            var continueWrap = btn.closest('.section-continue');
+            if (!validateSection(section)) {
+              if (continueWrap) continueWrap.classList.add('has-error');
+              return;
+            }
+            if (continueWrap) continueWrap.classList.remove('has-error');
+            section.classList.add('section-complete');
+            var sectionIndex = parseInt(btn.getAttribute('data-continue'), 10) - 1;
+            revealNext(sectionIndex);
+          });
+        })(continueButtons[i]);
+      }
+
+      // ===== AJAX submit to Formspree =====
       var form = document.getElementById('intake-form');
       var thanks = document.getElementById('intake-thanks');
       var errorBox = document.getElementById('intake-error');
