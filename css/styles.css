@@ -267,7 +267,7 @@ p {
 }
 
 .site-logo img.logo-img {
-  height: 52px;
+  height: 60px;
   width: auto;
 }
 
@@ -1055,6 +1055,80 @@ p {
   text-align: center;
   margin-top: 0.5rem;
   font-style: italic;
+}
+
+/* --- Blog Suggestions Section --- */
+.blog-suggest {
+  background-color: var(--color-soft-cream);
+  border: 1px solid rgba(212, 197, 178, 0.5);
+  border-radius: 12px;
+  padding: 3rem 2.5rem;
+  max-width: 760px;
+  margin: 0 auto;
+  position: relative;
+  text-align: center;
+}
+
+.blog-suggest::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 2.5rem;
+  right: 2.5rem;
+  height: 3px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--color-fig-accent),
+    var(--color-olive-leaf),
+    transparent
+  );
+  border-radius: 3px;
+}
+
+.blog-suggest .suggest-eyebrow {
+  font-family: var(--font-heading);
+  font-style: italic;
+  font-size: 1.0625rem;
+  color: var(--color-fig-accent);
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.blog-suggest h2 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  margin-bottom: 1rem;
+  color: var(--color-deep-fig);
+}
+
+.blog-suggest > p {
+  color: #555;
+  max-width: 540px;
+  margin: 0 auto 2rem;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.blog-suggest .ml-embedded {
+  max-width: 540px;
+  margin: 0 auto;
+}
+
+.blog-suggest .suggest-aside {
+  margin-top: 1.5rem;
+  font-size: 0.875rem;
+  color: #999;
+  font-style: italic;
+}
+
+@media (max-width: 600px) {
+  .blog-suggest {
+    padding: 2rem 1.5rem;
+  }
+  .blog-suggest::before {
+    left: 1.5rem;
+    right: 1.5rem;
+  }
 }
 
 /* --- Newsletter Section --- */
