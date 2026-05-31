@@ -471,6 +471,20 @@ function formatValue(v) {
     return v.map(x => escape(String(x))).join(', ');
   }
   if (typeof v === 'object') {
+    // Quiz profile: { key, title, subtitle, keys[] }
+    if (v.title && v.subtitle && Array.isArray(v.keys)) {
+      const chips = v.keys.map(k =>
+        '<span class="profile-chip profile-chip-' + escape(k) + '">' + escape(k) + '</span>'
+      ).join('');
+      return (
+        '<div class="profile-card">' +
+          '<div class="profile-card-title">' + escape(v.title) + '</div>' +
+          '<div class="profile-card-subtitle">' + escape(v.subtitle) + '</div>' +
+          (v.key ? '<div class="profile-card-key">Profile key: <code>' + escape(v.key) + '</code></div>' : '') +
+          (chips ? '<div class="profile-card-chips"><span class="profile-card-chips-label">Color focus</span>' + chips + '</div>' : '') +
+        '</div>'
+      );
+    }
     return '<pre>' + escape(JSON.stringify(v, null, 2)) + '</pre>';
   }
   // ISO timestamp?

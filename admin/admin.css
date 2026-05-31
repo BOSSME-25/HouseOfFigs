@@ -425,6 +425,74 @@ html, body {
   color: #bbb;
   font-style: italic;
 }
+.detail-fields .profile-card {
+  background: linear-gradient(135deg, #faf6ef 0%, #f5ede0 100%);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+}
+.detail-fields .profile-card-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--color-deep-fig);
+  line-height: 1.2;
+}
+.detail-fields .profile-card-subtitle {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 1rem;
+  color: var(--color-fig-accent);
+  margin-top: 0.25rem;
+}
+.detail-fields .profile-card-key {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  margin-top: 0.85rem;
+  letter-spacing: 0.03em;
+}
+.detail-fields .profile-card-key code {
+  background-color: rgba(74, 55, 40, 0.06);
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-family: 'SF Mono', Menlo, monospace;
+  color: var(--color-deep-fig);
+}
+.detail-fields .profile-card-chips {
+  margin-top: 0.85rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+.detail-fields .profile-card-chips-label {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  letter-spacing: 0.03em;
+  margin-right: 0.25rem;
+}
+.detail-fields .profile-chip {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: capitalize;
+  padding: 0.2rem 0.7rem;
+  border-radius: 20px;
+  background-color: var(--color-warm-sand);
+  color: var(--color-deep-fig);
+  border: 1px solid transparent;
+}
+.detail-fields .profile-chip-red        { background-color: #f4d6d3; color: #8b2a1f; }
+.detail-fields .profile-chip-orange     { background-color: #f6dec5; color: #8e4a13; }
+.detail-fields .profile-chip-yellow     { background-color: #f3e6b3; color: #8a6a0a; }
+.detail-fields .profile-chip-green      { background-color: #d3e3cc; color: #2d5a32; }
+.detail-fields .profile-chip-greenwhite { background-color: #e2ead9; color: #4b6647; }
+.detail-fields .profile-chip-white      { background-color: #ece9e2; color: #5c5046; }
+.detail-fields .profile-chip-blue       { background-color: #d3dceb; color: #2e4773; }
+.detail-fields .profile-chip-purple     { background-color: #ddd0e6; color: #4d2d6d; }
+.detail-fields .profile-chip-brown      { background-color: #e0d2c1; color: #5a3b1f; }
+
 .detail-fields .qa-list {
   list-style: none;
   margin: 0;
