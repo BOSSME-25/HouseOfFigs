@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard | House of Figs</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+  <!-- Login screen -->
+  <div id="login" class="login-screen">
+    <div class="login-card">
+      <img src="/images/logo.png" alt="House of Figs" class="login-logo">
+      <p class="login-eyebrow">House of Figs</p>
+      <h1>Welcome back.</h1>
+      <p class="login-sub">Sign in with your Google Workspace account to access the dashboard.</p>
+      <button id="signin-btn" class="signin-btn">
+        <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
+          <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258a5.4 5.4 0 0 1-3.048.852 5.357 5.357 0 0 1-5.034-3.711H.957v2.332A9 9 0 0 0 9 18z"/>
+          <path fill="#FBBC05" d="M3.966 10.7a5.41 5.41 0 0 1-.282-1.7c0-.59.102-1.163.282-1.7V4.968H.957A9 9 0 0 0 0 9c0 1.452.348 2.827.957 4.032l3.01-2.332z"/>
+          <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A9 9 0 0 0 .957 4.968l3.01 2.332A5.357 5.357 0 0 1 9 3.58z"/>
+        </svg>
+        <span>Sign in with Google</span>
+      </button>
+      <p id="login-error" class="login-error" role="alert"></p>
+      <p class="login-foot"><a href="/">&larr; Back to public site</a></p>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboard" class="dashboard hidden">
+    <header class="admin-header">
+      <a href="/" class="admin-logo">
+        <img src="/images/logo.png" alt="">
+        <span>Dashboard</span>
+      </a>
+      <div class="admin-user">
+        <span id="user-email">&mdash;</span>
+        <button id="signout-btn" class="signout-btn">Sign out</button>
+      </div>
+    </header>
+
+    <nav class="admin-tabs" role="tablist">
+      <button class="tab-btn active" data-tab="overview" role="tab">Overview</button>
+      <button class="tab-btn" data-tab="quizzes" role="tab">Quiz responses <span class="badge" id="badge-quizzes">0</span></button>
+      <button class="tab-btn" data-tab="intakes" role="tab">Intake forms <span class="badge" id="badge-intakes">0</span></button>
+    </nav>
+
+    <main class="admin-main">
+
+      <!-- OVERVIEW -->
+      <section id="tab-overview" class="tab-content active">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Quizzes (all time)</div>
+            <div class="stat-value" id="stat-quiz-total">&mdash;</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Email leads from quiz</div>
+            <div class="stat-value" id="stat-quiz-emails">&mdash;</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Quizzes this week</div>
+            <div class="stat-value" id="stat-quiz-week">&mdash;</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Intake submissions</div>
+            <div class="stat-value" id="stat-intake-total">&mdash;</div>
+          </div>
+        </div>
+
+        <h2 class="section-h2">Recent activity</h2>
+        <div id="activity-feed" class="activity-feed">
+          <p class="empty">Waiting for the first activity to come in&hellip;</p>
+        </div>
+      </section>
+
+      <!-- QUIZZES -->
+      <section id="tab-quizzes" class="tab-content">
+        <div class="list-header">
+          <h2 class="section-h2">Quiz responses</h2>
+          <button class="export-btn" id="export-quizzes" type="button">Export CSV</button>
+        </div>
+        <div id="quiz-list" class="data-list">
+          <p class="empty">No quiz responses yet.</p>
+        </div>
+      </section>
+
+      <!-- INTAKES -->
+      <section id="tab-intakes" class="tab-content">
+        <div class="list-header">
+          <h2 class="section-h2">Intake submissions</h2>
+          <button class="export-btn" id="export-intakes" type="button">Export CSV</button>
+        </div>
+        <div id="intake-list" class="data-list">
+          <p class="empty">No intake submissions yet.</p>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Detail modal -->
+    <div id="detail-modal" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="modal-backdrop" data-close></div>
+      <div class="modal-content">
+        <button class="modal-close" id="modal-close" type="button" aria-label="Close">&times;</button>
+        <div id="modal-body"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="admin.js"></script>
+</body>
+</html>

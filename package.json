@@ -1,0 +1,10 @@
+{
+  "name": "house-of-figs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "House of Figs Functional Nutrition website with internal forms backend",
+  "type": "module",
+  "dependencies": {
+    "firebase-admin": "^12.7.0"
+  }
+}

@@ -429,6 +429,53 @@
       max-width: 440px;
       margin: 0 auto;
     }
+    .quiz-email-form {
+      max-width: 460px;
+      margin: 0 auto;
+    }
+    .quiz-email-form .qef-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.65rem;
+      margin-bottom: 0.85rem;
+    }
+    @media (max-width: 480px) {
+      .quiz-email-form .qef-row { grid-template-columns: 1fr; }
+    }
+    .quiz-email-form input {
+      width: 100%;
+      padding: 0.7rem 0.9rem;
+      border: 1px solid #d4c5b2;
+      border-radius: 6px;
+      background-color: #faf6ef;
+      font-family: inherit;
+      font-size: 0.9375rem;
+      color: #2C2C2C;
+      transition: border-color 0.18s, background-color 0.18s;
+    }
+    .quiz-email-form input:focus {
+      outline: none;
+      border-color: #6B7F5E;
+      background-color: #fff;
+    }
+    .quiz-email-form .btn--primary {
+      width: 100%;
+    }
+    .quiz-email-form .qef-status {
+      font-size: 0.8125rem;
+      color: #8B5E5A;
+      font-style: italic;
+      margin: 0.65rem 0 0;
+      min-height: 1.1em;
+      text-align: center;
+    }
+    .quiz-email-thanks {
+      max-width: 460px;
+      margin: 0 auto;
+      text-align: center;
+      padding: 1rem 0;
+    }
+    .quiz-email-thanks strong { color: #6B7F5E; }
 
     /* Retake button */
     .quiz-retake {
@@ -674,11 +721,21 @@
           <hr class="result-divider">
 
           <!-- Email Gate -->
-          <div class="email-gate">
+          <div class="email-gate" id="quiz-email-gate">
             <h3>Want the Full Guide?</h3>
-            <p>Your results are just the beginning. Download the complete Eat the Rainbow guide &mdash; a detailed functional nutrition resource covering all 9 color families, their most potent foods, key nutrients, and the body systems they support.</p>
+            <p>Your results are just the beginning. Download the complete Eat the Rainbow guide, a detailed functional nutrition resource covering all 9 color families, their most potent foods, key nutrients, and the body systems they support.</p>
             <p class="email-gate-subtext">It&rsquo;s free. Just join the House of Figs community.</p>
-            <div class="ml-embedded" data-form="KUUEbi"></div>
+            <form id="quiz-email-form" class="quiz-email-form" novalidate>
+              <div class="qef-row">
+                <input type="text" id="qef-name" name="name" placeholder="Your first name" autocomplete="given-name" required>
+                <input type="email" id="qef-email" name="email" placeholder="your@email.com" autocomplete="email" required>
+              </div>
+              <button type="submit" class="btn btn--primary" id="qef-submit">Send me the guide</button>
+              <p class="qef-status" id="qef-status" role="status" aria-live="polite"></p>
+            </form>
+            <div id="quiz-email-thanks" class="quiz-email-thanks" hidden>
+              <p><strong>Thank you.</strong> Watch your inbox &mdash; your guide is on its way.</p>
+            </div>
           </div>
 
           <!-- Retake -->
@@ -749,7 +806,16 @@
       var currentQuestion = 0;
       var totalQuestions = 7;
       var scores = {};
+      var selectedAnswers = [];
+      var sessionId = makeSessionId();
+      var lastProfileKey = null;
       var questions = document.querySelectorAll('.quiz-question');
+
+      function makeSessionId() {
+        if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+        return 'q-' + Date.now().toString(36) + '-' +
+          Math.random().toString(36).slice(2, 10);
+      }
       var progressFill = document.getElementById('progress-fill');
       var progressLabel = document.getElementById('progress-label');
       var quizProgress = document.getElementById('quiz-progress');
@@ -830,6 +896,17 @@
             scores[color] = (scores[color] || 0) + answerScores[color];
           }
         }
+
+        // Record the chosen answer for this question (for admin dashboard)
+        var qIdx = parseInt(questionEl.getAttribute('data-question'), 10);
+        var questionText = '';
+        var qHeading = questionEl.querySelector('h3');
+        if (qHeading) questionText = (qHeading.textContent || '').trim();
+        selectedAnswers[qIdx] = {
+          question: questionText,
+          answer: (btn.textContent || '').trim(),
+          scores: answerScores
+        };
 
         // Auto-advance after delay
         setTimeout(function() {
@@ -950,9 +1027,10 @@
           });
         }
 
-        // MailerLite: tag the email-gate submission with the profile key.
-        // Requires a custom field named "quiz_profile" (text) defined in MailerLite.
-        tagMailerLiteForm(profileKey);
+        // Save the (anonymous) result to our own backend so it appears in
+        // the admin dashboard immediately, before the user enters email.
+        lastProfileKey = profileKey;
+        postQuizResult(profileKey, profile);
 
         // Show results
         quizResults.classList.add('visible');
@@ -963,32 +1041,72 @@
         }, 100);
       }
 
-      // Inject the user's quiz profile into the MailerLite email-gate form so
-      // each subscriber row in MailerLite carries their result. The form is
-      // rendered asynchronously by the MailerLite Universal script, so we
-      // poll for it briefly.
-      function tagMailerLiteForm(profileKey) {
-        var container = document.querySelector('.ml-embedded[data-form="KUUEbi"]');
-        if (!container) return;
-        var attempts = 0;
-        function attempt() {
-          var form = container.querySelector('form');
-          if (form) {
-            var existing = form.querySelector('input[name="fields[quiz_profile]"]');
-            if (existing) {
-              existing.value = profileKey;
-            } else {
-              var hidden = document.createElement('input');
-              hidden.type = 'hidden';
-              hidden.name = 'fields[quiz_profile]';
-              hidden.value = profileKey;
-              form.appendChild(hidden);
-            }
-            return;
+      // Save the anonymous quiz answers + result to /api/submit-quiz.
+      // The user is still anonymous at this point — the email is captured
+      // separately when they fill out the gate form.
+      function postQuizResult(profileKey, profile) {
+        var payload = {
+          sessionId: sessionId,
+          answers: selectedAnswers,
+          profile: {
+            key: profileKey,
+            title: profile.title,
+            subtitle: profile.subtitle,
+            keys: profile.keys
           }
-          if (++attempts < 20) setTimeout(attempt, 500);
-        }
-        attempt();
+        };
+        try {
+          fetch('/api/submit-quiz', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            keepalive: true
+          }).catch(function () { /* silent — user already saw results */ });
+        } catch (e) { /* ignore */ }
+      }
+
+      // Email gate form — links email to the previously-saved quiz response.
+      var emailForm = document.getElementById('quiz-email-form');
+      if (emailForm) {
+        emailForm.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var nameEl = document.getElementById('qef-name');
+          var emailEl = document.getElementById('qef-email');
+          var statusEl = document.getElementById('qef-status');
+          var submitBtn = document.getElementById('qef-submit');
+          var name = (nameEl.value || '').trim();
+          var email = (emailEl.value || '').trim();
+
+          if (!name) { statusEl.textContent = 'Please add your first name.'; nameEl.focus(); return; }
+          if (!email || email.indexOf('@') === -1) {
+            statusEl.textContent = 'Please add a valid email.'; emailEl.focus(); return;
+          }
+          statusEl.textContent = '';
+          submitBtn.disabled = true;
+          var originalText = submitBtn.textContent;
+          submitBtn.textContent = 'Sending…';
+
+          fetch('/api/submit-quiz', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId: sessionId, email: email, name: name })
+          }).then(function (r) {
+            if (!r.ok) throw new Error('submit_failed');
+            return r.json();
+          }).then(function () {
+            document.getElementById('quiz-email-form').setAttribute('hidden', 'hidden');
+            document.getElementById('quiz-email-thanks').removeAttribute('hidden');
+            if (typeof gtag === 'function') {
+              gtag('event', 'quiz_email_captured', {
+                profile: lastProfileKey || ''
+              });
+            }
+          }).catch(function () {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+            statusEl.textContent = 'Something went wrong. Please try again or email bethany@houseoffigs.org.';
+          });
+        });
       }
 
       // Reset quiz (exposed globally)
@@ -996,6 +1114,22 @@
         // Reset state
         currentQuestion = 0;
         scores = {};
+        selectedAnswers = [];
+        sessionId = makeSessionId();
+        lastProfileKey = null;
+
+        // Reset email gate UI
+        var emailFormEl = document.getElementById('quiz-email-form');
+        var emailThanksEl = document.getElementById('quiz-email-thanks');
+        if (emailFormEl) {
+          emailFormEl.removeAttribute('hidden');
+          emailFormEl.reset();
+          var submitBtn = document.getElementById('qef-submit');
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Send me the guide'; }
+          var statusEl = document.getElementById('qef-status');
+          if (statusEl) statusEl.textContent = '';
+        }
+        if (emailThanksEl) emailThanksEl.setAttribute('hidden', 'hidden');
 
         // Clear selections
         var allAnswers = document.querySelectorAll('.quiz-answer');

@@ -1,0 +1,41 @@
+// Firestore security rules for House of Figs.
+//
+// Paste these into Firebase Console → Firestore Database → Rules → Publish.
+//
+// Logic:
+//   - The public site never reads or writes directly. All writes happen via
+//     Vercel Functions using the Admin SDK, which bypasses these rules.
+//   - The admin dashboard reads (and only reads) using the signed-in user's
+//     Google identity. Only the two emails below are allowed.
+//   - No one can write from the client. Period.
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email in [
+          'bethany@houseoffigs.org',
+          'emily@houseoffigs.org'
+        ];
+    }
+
+    match /quizzes/{docId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /intakes/{docId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // Future: newsletter, contact, etc.
+    match /{anything=**} {
+      allow read, write: if false;
+    }
+  }
+}
