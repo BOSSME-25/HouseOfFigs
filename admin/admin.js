@@ -411,11 +411,26 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && !modalEl.classList.contains('hidden')) closeDetail();
 });
 
+function findLinkedSubmissions(type, data) {
+  // Cross-reference by email — if a quiz has an email, look up intakes with
+  // the same email, and vice versa. Returns array of { kind, doc }.
+  const email = (data.email || data.Email || '').toLowerCase().trim();
+  if (!email) return [];
+  const otherDocs = type === 'quiz' ? intakeDocs : quizDocs;
+  const otherKind = type === 'quiz' ? 'intake' : 'quiz';
+  return otherDocs
+    .filter(d => (d.email || d.Email || '').toLowerCase().trim() === email)
+    .map(doc => ({ kind: otherKind, doc }));
+}
+
 function renderDetail(type, data) {
   const title = type === 'quiz' ? 'Quiz response' : 'Intake submission';
 
   const skipKeys = new Set(['id', '_kind', 'userAgent', 'referer']);
   const keys = Object.keys(data).filter(k => !skipKeys.has(k));
+
+  // Look for linked submissions in the other collection
+  const linked = findLinkedSubmissions(type, data);
 
   // Put a few important keys first if present
   const priority = type === 'quiz'
@@ -430,6 +445,27 @@ function renderDetail(type, data) {
 
   let html = `<h2>${escape(title)}</h2>`;
   html += `<div class="detail-meta">Submitted ${formatTime(data.createdAt)} &middot; <a href="#" id="copy-json">Copy as JSON</a></div>`;
+
+  if (linked.length > 0) {
+    html += '<div class="linked-banner">';
+    html += '<div class="linked-banner-label">';
+    html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
+    html += linked.length + ' linked ' + (linked[0].kind === 'quiz' ? 'quiz response' : 'intake submission') + (linked.length > 1 ? 's' : '');
+    html += '</div>';
+    html += '<div class="linked-list">';
+    html += linked.map(item => {
+      const d = item.doc;
+      const label = item.kind === 'quiz'
+        ? (d.profile?.title || 'Anonymous quiz')
+        : (d['Full name'] || d['full-name'] || 'Intake submission');
+      return '<button type="button" class="linked-item" data-id="' + escape(d.id) + '" data-type="' + item.kind + '">' +
+        '<span class="linked-item-label">' + escape(label) + '</span>' +
+        '<span class="linked-item-time">' + formatTime(d.createdAt) + ' &rarr;</span>' +
+      '</button>';
+    }).join('');
+    html += '</div></div>';
+  }
+
   html += '<dl class="detail-fields">';
   for (const key of orderedKeys) {
     html += `<dt>${escape(key)}</dt>`;
@@ -446,6 +482,11 @@ function renderDetail(type, data) {
           .then(() => { copyLink.textContent = 'Copied!'; });
       });
     }
+    document.querySelectorAll('.linked-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        openDetail(btn.dataset.type, btn.dataset.id);
+      });
+    });
   }, 0);
 
   return html;
