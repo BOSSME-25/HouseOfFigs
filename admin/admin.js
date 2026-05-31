@@ -456,6 +456,18 @@ function formatValue(v) {
     return '<span class="empty-val">—</span>';
   }
   if (Array.isArray(v)) {
+    if (v.length === 0) return '<span class="empty-val">—</span>';
+    // Quiz answers: array of { question, answer, scores }
+    if (v.every(x => x && typeof x === 'object' && 'question' in x && 'answer' in x)) {
+      return '<ol class="qa-list">' + v.map(x =>
+        '<li><div class="qa-q">' + escape(x.question || '') + '</div>' +
+        '<div class="qa-a">' + escape(x.answer || '') + '</div></li>'
+      ).join('') + '</ol>';
+    }
+    // Other arrays of objects: fall back to pretty JSON
+    if (v.some(x => x && typeof x === 'object')) {
+      return '<pre>' + escape(JSON.stringify(v, null, 2)) + '</pre>';
+    }
     return v.map(x => escape(String(x))).join(', ');
   }
   if (typeof v === 'object') {

@@ -425,6 +425,45 @@ html, body {
   color: #bbb;
   font-style: italic;
 }
+.detail-fields .qa-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: qa;
+}
+.detail-fields .qa-list li {
+  counter-increment: qa;
+  padding: 0.85rem 1rem;
+  background-color: var(--color-soft-cream);
+  border-radius: 6px;
+  margin-bottom: 0.65rem;
+  position: relative;
+  padding-left: 2.5rem;
+}
+.detail-fields .qa-list li::before {
+  content: counter(qa);
+  position: absolute;
+  left: 0.85rem;
+  top: 0.85rem;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.25rem;
+  color: var(--color-fig-accent);
+  font-weight: 500;
+  line-height: 1;
+}
+.detail-fields .qa-list .qa-q {
+  font-size: 0.875rem;
+  color: var(--color-deep-fig);
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  line-height: 1.4;
+}
+.detail-fields .qa-list .qa-a {
+  font-size: 0.875rem;
+  color: var(--color-text-dark);
+  font-style: italic;
+  line-height: 1.4;
+}
 .detail-fields dd pre {
   font-family: 'SF Mono', Menlo, monospace;
   background-color: var(--color-soft-cream);
