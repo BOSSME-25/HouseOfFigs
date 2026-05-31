@@ -1,19 +1,24 @@
 // Firestore security rules for House of Figs.
 //
-// Paste these into Firebase Console → Firestore Database → Rules → Publish.
+// Paste into Firebase Console → Firestore Database → Rules → Publish.
 //
-// Logic:
-//   - The public site never reads or writes directly. All writes happen via
-//     Vercel Functions using the Admin SDK, which bypasses these rules.
-//   - The admin dashboard reads (and only reads) using the signed-in user's
-//     Google identity. Only the two emails below are allowed.
-//   - No one can write from the client. Period.
+// Architecture:
+//   - The public site writes directly to /quizzes/* and /intakes/* with no
+//     authentication required. Strict per-field validation in these rules
+//     is the only thing stopping abuse.
+//   - The admin dashboard reads everything using a signed-in Google
+//     identity restricted to the allow-list below.
+//   - Nobody can read /quizzes or /intakes from the public site. Submissions
+//     are write-only from the browser's point of view.
 
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // -------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------
     function isAdmin() {
       return request.auth != null
         && request.auth.token.email_verified == true
@@ -23,17 +28,103 @@ service cloud.firestore {
         ];
     }
 
-    match /quizzes/{docId} {
-      allow read: if isAdmin();
-      allow write: if false;
+    function isString(v, maxLen) {
+      return v is string && v.size() <= maxLen;
     }
 
+    function isOptionalString(v, maxLen) {
+      return v == null || (v is string && v.size() <= maxLen);
+    }
+
+    function isEmail(v) {
+      return v is string
+        && v.size() >= 5 && v.size() <= 320
+        && v.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$');
+    }
+
+    // -------------------------------------------------------------------
+    // /quizzes/{sessionId}
+    //
+    // First write: the user finishes the quiz (anonymous result).
+    //   { sessionId, answers, profile, createdAt }
+    // Second write (optional): the user enters their email on the result.
+    //   { email, name?, emailCapturedAt }
+    //
+    // Both writes target the SAME document using { merge: true } so the
+    // anonymous quiz answers stay linked to the captured email.
+    // -------------------------------------------------------------------
+    match /quizzes/{sessionId} {
+      allow read: if isAdmin();
+      allow delete: if false;
+
+      // CREATE — the first write. Must include valid quiz answers + profile.
+      allow create: if validQuizCreate(request.resource.data);
+
+      // UPDATE — only allowed if the update is ONLY adding email/name (the
+      // post-result lead-capture write). Existing fields can't be changed.
+      allow update: if validQuizEmailUpdate(resource.data, request.resource.data);
+    }
+
+    function validQuizCreate(d) {
+      return d.keys().hasOnly([
+            'sessionId', 'answers', 'profile', 'createdAt',
+            'userAgent', 'referer'
+          ])
+        && d.keys().hasAll(['sessionId', 'answers', 'profile', 'createdAt'])
+        && isString(d.sessionId, 200)
+        && d.answers is list && d.answers.size() <= 20
+        && d.profile is map
+        && d.profile.keys().hasOnly(['key', 'title', 'subtitle', 'keys'])
+        && d.profile.key in ['rebuilder', 'balancer', 'energizer']
+        && isString(d.profile.title, 100)
+        && isString(d.profile.subtitle, 300)
+        && d.profile.keys is list
+        && isString(d.createdAt, 50)
+        && isOptionalString(d.userAgent, 500)
+        && isOptionalString(d.referer, 500);
+    }
+
+    function validQuizEmailUpdate(before, after) {
+      // The update may only add email, name, emailCapturedAt. Nothing else
+      // can change. createdAt/profile/answers must remain identical.
+      let added = after.diff(before).addedKeys();
+      let changed = after.diff(before).changedKeys();
+      let removed = after.diff(before).removedKeys();
+      return removed.size() == 0
+        && changed.size() == 0
+        && added.hasOnly(['email', 'name', 'emailCapturedAt'])
+        && added.hasAll(['email', 'emailCapturedAt'])
+        && isEmail(after.email)
+        && isOptionalString(after.get('name', null), 200)
+        && isString(after.emailCapturedAt, 50);
+    }
+
+    // -------------------------------------------------------------------
+    // /intakes/{autoId}
+    //
+    // The intake form sends the entire form payload as one document. We
+    // can't enumerate every field name (the form is long and may evolve)
+    // so we validate the shape but allow arbitrary string fields.
+    // -------------------------------------------------------------------
     match /intakes/{docId} {
       allow read: if isAdmin();
-      allow write: if false;
+      allow update, delete: if false;
+
+      allow create: if validIntakeCreate(request.resource.data);
     }
 
-    // Future: newsletter, contact, etc.
+    function validIntakeCreate(d) {
+      // Required + size limits + total field count
+      return d.keys().size() <= 200
+        && d.keys().hasAll(['email', 'createdAt'])
+        && isEmail(d.email)
+        && isString(d.createdAt, 50)
+        && d.size() < 1048576;  // < 1 MB
+    }
+
+    // -------------------------------------------------------------------
+    // Default deny for any other collection
+    // -------------------------------------------------------------------
     match /{anything=**} {
       allow read, write: if false;
     }

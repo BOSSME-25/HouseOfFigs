@@ -507,7 +507,7 @@
     </div>
 
     <!-- ============ FORM ============ -->
-    <form id="intake-form" class="intake-form" action="/api/submit-intake" method="POST">
+    <form id="intake-form" class="intake-form">
       <!-- Formspree config: tweak the subject + reply-to -->
       <input type="hidden" name="_subject" value="New pre-consult intake — House of Figs">
 
@@ -1035,6 +1035,7 @@
   </footer>
 
   <script src="js/main.js"></script>
+  <script type="module" src="js/firebase-public.mjs"></script>
 
   <!-- Progressive section reveal + AJAX submit -->
   <script>
@@ -1138,27 +1139,41 @@
             }
           });
 
-          var response = await fetch(form.action, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-          if (response.ok) {
-            form.classList.add('hidden');
-            thanks.classList.remove('hidden');
-            thanks.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            if (typeof gtag === 'function') {
-              gtag('event', 'intake_submit', { form: 'pre-consult' });
-            }
-          } else {
-            throw new Error('submit_failed');
+          // Normalize the email field — Firestore rules require lowercase
+          // and trimmed; the form posts whatever the user typed.
+          if (typeof payload.email === 'string') {
+            payload.email = payload.email.trim().toLowerCase();
+          }
+          payload.createdAt = new Date().toISOString();
+          payload.userAgent = (navigator.userAgent || '').slice(0, 500);
+          payload.referer = (document.referrer || '').slice(0, 500);
+
+          await whenFirebaseReady();
+          await window.hofFirebase.addIntake(payload);
+
+          form.classList.add('hidden');
+          thanks.classList.remove('hidden');
+          thanks.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          if (typeof gtag === 'function') {
+            gtag('event', 'intake_submit', { form: 'pre-consult' });
           }
         } catch (err) {
+          console.warn('Intake submit failed:', err);
           submitBtn.disabled = false;
           submitBtn.textContent = originalText;
           errorBox.classList.remove('hidden');
         }
       });
+
+      function whenFirebaseReady() {
+        return new Promise(function (resolve) {
+          if (window.hofFirebase) return resolve();
+          window.addEventListener('hofFirebaseReady', function once() {
+            window.removeEventListener('hofFirebaseReady', once);
+            resolve();
+          });
+        });
+      }
     })();
   </script>
 </body>

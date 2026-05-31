@@ -792,6 +792,7 @@
   </footer>
 
   <script src="js/main.js"></script>
+  <script type="module" src="js/firebase-public.mjs"></script>
 
   <script>
     // ===== Quiz Engine =====
@@ -1041,7 +1042,7 @@
         }, 100);
       }
 
-      // Save the anonymous quiz answers + result to /api/submit-quiz.
+      // Save the anonymous quiz answers + result directly to Firestore.
       // The user is still anonymous at this point — the email is captured
       // separately when they fill out the gate form.
       function postQuizResult(profileKey, profile) {
@@ -1053,16 +1054,24 @@
             title: profile.title,
             subtitle: profile.subtitle,
             keys: profile.keys
-          }
+          },
+          createdAt: new Date().toISOString(),
+          userAgent: (navigator.userAgent || '').slice(0, 500),
+          referer: (document.referrer || '').slice(0, 500)
         };
-        try {
-          fetch('/api/submit-quiz', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-            keepalive: true
-          }).catch(function () { /* silent — user already saw results */ });
-        } catch (e) { /* ignore */ }
+        whenFirebaseReady(function () {
+          window.hofFirebase
+            .writeQuizDoc(sessionId, payload)
+            .catch(function (e) { console.warn('Quiz save failed:', e); });
+        });
+      }
+
+      function whenFirebaseReady(cb) {
+        if (window.hofFirebase) return cb();
+        window.addEventListener('hofFirebaseReady', function once() {
+          window.removeEventListener('hofFirebaseReady', once);
+          cb();
+        });
       }
 
       // Email gate form — links email to the previously-saved quiz response.
@@ -1086,25 +1095,25 @@
           var originalText = submitBtn.textContent;
           submitBtn.textContent = 'Sending…';
 
-          fetch('/api/submit-quiz', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionId: sessionId, email: email, name: name })
-          }).then(function (r) {
-            if (!r.ok) throw new Error('submit_failed');
-            return r.json();
-          }).then(function () {
-            document.getElementById('quiz-email-form').setAttribute('hidden', 'hidden');
-            document.getElementById('quiz-email-thanks').removeAttribute('hidden');
-            if (typeof gtag === 'function') {
-              gtag('event', 'quiz_email_captured', {
-                profile: lastProfileKey || ''
-              });
-            }
-          }).catch(function () {
-            submitBtn.disabled = false;
-            submitBtn.textContent = originalText;
-            statusEl.textContent = 'Something went wrong. Please try again or email bethany@houseoffigs.org.';
+          whenFirebaseReady(function () {
+            window.hofFirebase.writeQuizDoc(sessionId, {
+              email: email.toLowerCase(),
+              name: name,
+              emailCapturedAt: new Date().toISOString()
+            }).then(function () {
+              document.getElementById('quiz-email-form').setAttribute('hidden', 'hidden');
+              document.getElementById('quiz-email-thanks').removeAttribute('hidden');
+              if (typeof gtag === 'function') {
+                gtag('event', 'quiz_email_captured', {
+                  profile: lastProfileKey || ''
+                });
+              }
+            }).catch(function (err) {
+              console.warn('Email capture failed:', err);
+              submitBtn.disabled = false;
+              submitBtn.textContent = originalText;
+              statusEl.textContent = 'Something went wrong. Please try again or email bethany@houseoffigs.org.';
+            });
           });
         });
       }

@@ -2,107 +2,76 @@
 
 This document walks you through wiring the site up to your own Firebase
 project so all form submissions live in Firestore and the admin dashboard at
-`/admin` shows them.
+`/admin` shows them in real time.
 
 Once this is done, the only external services the site uses are Google
-(Firebase, Identity, Analytics, Fonts) and Vercel (hosting + serverless
-functions).
+(Firebase, Identity, Analytics, Fonts) and Vercel (hosting).
 
-You'll do this once. Should take about 20 minutes.
+You'll do this once. Should take about 10 minutes — most steps are already done.
 
 ---
 
-## 1. Create the Firebase project
+## Architecture
 
-1. Go to https://console.firebase.google.com and sign in as
-   **bethany@houseoffigs.org**.
-2. Click **Add project**.
-3. Project name: `house-of-figs` (or `houseoffigs` — anything you like).
-4. Disable Google Analytics inside Firebase (you already have GA4 set up
-   on the site, no need to duplicate). Click **Create**.
+```
+  Public site (quiz, intake)  →  Firestore (writes only, strict rules)
+                                        ↑ reads
+  Admin dashboard at /admin   →  Firestore  (Google sign-in, allow-list)
+```
 
-## 2. Enable Firestore
+No backend servers. No service account JSON keys. The Firestore security
+rules are the gate. The browser writes directly; admins read directly.
 
-1. Inside the project, go to **Build → Firestore Database**.
-2. Click **Create database**.
-3. Start in **production mode** (we'll paste real security rules next).
-4. Choose a location close to you — `nam5 (us-central)` is a fine default.
-5. Click **Create**.
+---
 
-## 3. Paste the security rules
+## ✅ Already done
 
-1. Still in Firestore Database, click the **Rules** tab.
-2. Replace the entire file with the contents of `firestore.rules` from this
-   project (sitting next to this file). Then click **Publish**.
+- Firebase project `houseoffigs-16f71` created
+- Firestore enabled
+- Web app registered, `firebaseConfig` pasted into the code
 
-These rules say:
+## What's left for you
+
+### 1. Paste the Firestore security rules
+
+1. Open https://console.firebase.google.com/project/houseoffigs-16f71/firestore/rules
+2. Replace the entire file with the contents of `firestore.rules` in this repo
+3. Click **Publish**
+
+These rules enforce:
+- Anyone can submit a quiz or intake form (validated per-field).
+- Nobody can read or modify those submissions from the browser.
 - Only `bethany@houseoffigs.org` and `emily@houseoffigs.org` (signed in via
-  Google) can read submissions.
-- Nobody can write from the client. All writes go through our Vercel
-  Functions using a service account.
+  Google) can read submissions through the admin dashboard.
 
-## 4. Enable Google Sign-In for the admin dashboard
+### 2. Enable Google Sign-In (for the admin dashboard)
 
-1. Go to **Build → Authentication**.
-2. Click **Get started**.
-3. Under **Sign-in method**, click **Google** → **Enable**.
-4. Set the support email to `bethany@houseoffigs.org` and click **Save**.
+1. Open https://console.firebase.google.com/project/houseoffigs-16f71/authentication/providers
+2. Click **Get started** (if you haven't already)
+3. Under **Sign-in method**, click **Google** → toggle **Enable**
+4. Support email: `bethany@houseoffigs.org`
+5. Click **Save**
 
-## 5. Register the web app (for the admin dashboard frontend)
+### 3. Add authorized domains for sign-in
 
-1. Go to **Project settings** (gear icon, top left) → **General** tab.
-2. Scroll down to **Your apps**, click the `</>` (web) icon.
-3. App nickname: `Admin Dashboard`. Do **not** check "Firebase Hosting".
-4. Click **Register app**.
-5. You'll see a `firebaseConfig` object with values like:
-   ```js
-   {
-     apiKey: "AIza…",
-     authDomain: "house-of-figs.firebaseapp.com",
-     projectId: "house-of-figs",
-     storageBucket: "house-of-figs.appspot.com",
-     messagingSenderId: "123…",
-     appId: "1:123…:web:abc…"
-   }
-   ```
-6. **Send those six values to me** and I'll paste them into
-   `admin/admin.js`. (These values are public — they appear in every
-   Firebase web app and are safe to commit.)
-
-## 6. Create the service account (for the Vercel Functions backend)
-
-1. In Project settings, click the **Service accounts** tab.
-2. Click **Generate new private key** → **Generate key**.
-3. A JSON file downloads. **Open it in a text editor** and copy the
-   entire contents (it's one big JSON object).
-
-## 7. Add the service account JSON to Vercel as an env var
-
-1. Go to https://vercel.com/oeprojects/house-of-figs/settings/environment-variables
-2. Click **Add new**.
-3. **Key**: `FIREBASE_ADMIN_KEY`
-4. **Value**: paste the entire JSON object you copied in step 6.
-5. **Environments**: check all three (Production, Preview, Development).
-6. Click **Save**.
-
-## 8. Authorize the admin domain for sign-in
-
-1. Back in Firebase Console → **Authentication** → **Settings** tab →
-   **Authorized domains**.
-2. Make sure these are in the list (add any that are missing):
+1. Open https://console.firebase.google.com/project/houseoffigs-16f71/authentication/settings
+2. Scroll to **Authorized domains** and make sure these are in the list (add
+   any that are missing):
    - `localhost`
    - `houseoffigs.org`
    - `www.houseoffigs.org`
 
-## 9. Redeploy
+---
 
-After steps 5–8 are done and you've sent me the firebaseConfig values,
-I'll paste them in and push a new deploy. After that:
+## That's it.
 
-- **Quiz** → results POST to `/api/submit-quiz`, show up in dashboard live.
-- **Intake form** → POSTs to `/api/submit-intake`, shows up in dashboard live.
-- **Admin dashboard** at https://houseoffigs.org/admin → sign in with
-  bethany@ or emily@ and watch submissions roll in real time.
+After steps 1–3 are done:
+
+- Take the quiz on https://houseoffigs.org/quiz.html — the result appears
+  in the admin dashboard within seconds.
+- Submit the intake form — same thing.
+- Sign in at https://houseoffigs.org/admin with bethany@ or emily@ and
+  watch submissions roll in real time.
 
 ---
 
@@ -110,11 +79,11 @@ I'll paste them in and push a new deploy. After that:
 
 | Was using | Now uses |
 | --- | --- |
-| Formspree (intake form) | Vercel Function → Firestore |
-| MailerLite (quiz email gate) | Same — Vercel Function → Firestore |
+| Formspree (intake form) | Firestore (direct write from browser) |
+| MailerLite (quiz email gate) | Firestore (direct write from browser) |
 | (Nothing — quiz answers weren't captured before) | Firestore |
 
-Phase 2 — coming next — will do the same for:
+Phase 2 — when you're ready — will do the same for:
 - The contact form (currently MailerLite)
 - The newsletter signup (currently MailerLite)
 
@@ -129,17 +98,13 @@ Phase 2 — coming next — will do the same for:
 ## Files to know about
 
 - `firestore.rules` — security rules. Paste into Firebase Console.
-- `api/submit-quiz.mjs` — backend handler for quiz submissions.
-- `api/submit-intake.mjs` — backend handler for intake submissions.
-- `lib/firebase-admin.mjs` — Firebase Admin SDK init (reads
-  `FIREBASE_ADMIN_KEY` env var).
+- `js/firebase-public.mjs` — small loader that initializes Firebase on the
+  public site and exposes `window.hofFirebase` for the form-submission code.
 - `admin/index.html` + `admin/admin.js` + `admin/admin.css` — dashboard.
-- `package.json` — declares the `firebase-admin` dependency.
+- `admin/admin.js` — contains the allow-list of admin emails. Edit this if
+  you ever need to add or remove an admin.
 
 ## Troubleshooting
-
-**"FIREBASE_ADMIN_KEY env var is not set"** — Step 7 wasn't completed, or
-the deploy hasn't run since the env var was added. Trigger a redeploy.
 
 **"Not authorized"** when signing in — your email isn't in `ALLOWED_EMAILS`
 in `admin/admin.js`. Edit that array and redeploy.
@@ -147,6 +112,10 @@ in `admin/admin.js`. Edit that array and redeploy.
 **Sign-in popup closes immediately** — usually a browser blocker. Try a
 fresh incognito window.
 
-**Missing `index` error in Firestore** — the dashboard orders by
+**Quiz/intake submission silently fails** — open the browser console.
+Most likely either the Firestore rules haven't been published yet, or the
+domain isn't in the Authorized domains list (step 3).
+
+**"Missing index" warning in Firestore** — the dashboard orders by
 `createdAt`. Firestore should auto-create that index on first query. If it
-asks, just click the suggested link in the error.
+asks, just click the suggested link in the error and click **Create**.

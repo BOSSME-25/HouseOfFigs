@@ -35,12 +35,13 @@ import {
 // CONFIG — paste from Firebase Console → Project Settings → Web app
 // ===================================================================
 const firebaseConfig = {
-  apiKey: 'REPLACE_WITH_FIREBASE_API_KEY',
-  authDomain: 'REPLACE_WITH_AUTH_DOMAIN',
-  projectId: 'REPLACE_WITH_PROJECT_ID',
-  storageBucket: 'REPLACE_WITH_STORAGE_BUCKET',
-  messagingSenderId: 'REPLACE_WITH_MESSAGING_SENDER_ID',
-  appId: 'REPLACE_WITH_APP_ID'
+  apiKey: 'AIzaSyAvh76aewVVl9PCrlBC74uRotkMutrK1cA',
+  authDomain: 'houseoffigs-16f71.firebaseapp.com',
+  projectId: 'houseoffigs-16f71',
+  storageBucket: 'houseoffigs-16f71.firebasestorage.app',
+  messagingSenderId: '1084309728433',
+  appId: '1:1084309728433:web:fc12dbcea494e895d94690',
+  measurementId: 'G-7J1YG1N0GB'
 };
 
 const ALLOWED_EMAILS = [
