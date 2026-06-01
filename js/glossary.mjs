@@ -58,6 +58,12 @@ export const GLOSSARY = {
     illustration: ''
   },
 
+  'estrogen-dominance': {
+    term: 'Estrogen dominance',
+    definition: "A pattern where estrogen is too high relative to progesterone — even if estrogen itself isn't above normal range. Common signs include: bloating and water retention, heavy or painful periods, mood swings or PMS, breast tenderness or fibrocystic breasts, weight gain (especially around hips and thighs), headaches before your period, low libido, and trouble sleeping in the second half of your cycle.",
+    illustration: ''
+  },
+
   'estrogen-metabolism': {
     term: 'Estrogen metabolism',
     definition: "How your body processes and clears estrogen, primarily through the liver and gut. When this process is sluggish, estrogen can recirculate and contribute to PMS, painful periods, breast tenderness, mood swings, or other hormone-related symptoms.",

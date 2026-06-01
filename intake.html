@@ -238,7 +238,10 @@
       margin-top: 1.75rem;
       padding-top: 1.5rem;
       border-top: 1px dashed rgba(212, 197, 178, 0.6);
-      text-align: right;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
     }
     .section-continue button {
       background-color: #6B7F5E;
@@ -256,19 +259,42 @@
     .section-continue button:hover {
       background-color: #4A3728;
     }
+    .section-continue [data-continue] {
+      margin-left: auto;
+    }
+    .section-continue .back-btn {
+      background-color: transparent;
+      color: #6B7F5E;
+      border: 1px solid #6B7F5E;
+      padding: 0.7rem 1.25rem;
+    }
+    .section-continue .back-btn:hover {
+      background-color: #6B7F5E;
+      color: #fff;
+    }
     .section-continue .section-continue-help {
       display: none;
+      flex-basis: 100%;
       color: #8B5E5A;
       font-style: italic;
       font-size: 0.8125rem;
-      margin-top: 0.5rem;
+      margin: 0;
       text-align: right;
+      order: 99;
     }
     .section-continue.has-error .section-continue-help {
       display: block;
     }
     .intake-section.section-complete .section-continue {
       display: none;
+    }
+    @media (max-width: 480px) {
+      .section-continue {
+        flex-direction: column-reverse;
+        align-items: stretch;
+      }
+      .section-continue button { width: 100%; margin-left: 0; }
+      .section-continue .section-continue-help { text-align: center; }
     }
 
     /* Progress indicator */
@@ -673,6 +699,7 @@
         </div>
 
         <div class="section-continue">
+          <button type="button" class="back-btn" data-back="2">&larr; Back</button>
           <button type="button" data-continue="2">Continue &rarr;</button>
           <p class="section-continue-help">Please complete this section to continue.</p>
         </div>
@@ -714,6 +741,7 @@
         </div>
 
         <div class="section-continue">
+          <button type="button" class="back-btn" data-back="3">&larr; Back</button>
           <button type="button" data-continue="3">Continue &rarr;</button>
           <p class="section-continue-help">Please complete this section to continue.</p>
         </div>
@@ -800,7 +828,7 @@
           <div class="check-group">
             <label><input type="checkbox" name="Green-white symptoms" value="Heavy periods or severe PMS"> Heavy periods or severe PMS</label>
             <label><input type="checkbox" name="Green-white symptoms" value="Breast tenderness (cyclical or constant)"> Breast tenderness (cyclical or constant)</label>
-            <label><input type="checkbox" name="Green-white symptoms" value="Estrogen-dominance symptoms (bloat, mood swings)"> Estrogen-dominance symptoms</label>
+            <label><input type="checkbox" name="Green-white symptoms" value="Estrogen-dominance symptoms (bloating, mood swings, water retention, heavy periods, breast tenderness)"> <button type="button" class="define-term" data-term="estrogen-dominance">Estrogen-dominance</button> symptoms <span style="color:#897866;font-style:italic;">(bloating, mood swings, water retention, breast tenderness)</span></label>
             <label><input type="checkbox" name="Green-white symptoms" value="Difficulty detoxing from illness or medication"> Difficulty detoxing from illness or meds</label>
           </div>
         </div>
@@ -875,6 +903,7 @@
         </div>
 
         <div class="section-continue">
+          <button type="button" class="back-btn" data-back="4">&larr; Back</button>
           <button type="button" data-continue="4">Continue &rarr;</button>
           <p class="section-continue-help">Please complete this section to continue.</p>
         </div>
@@ -978,6 +1007,7 @@
         </div>
 
         <div class="section-continue">
+          <button type="button" class="back-btn" data-back="5">&larr; Back</button>
           <button type="button" data-continue="5">Continue &rarr;</button>
           <p class="section-continue-help">Please complete this section to continue.</p>
         </div>
@@ -1002,6 +1032,10 @@
         <div class="field">
           <label class="field-label" for="anything-else">Is there anything &mdash; spiritual, emotional, or practical &mdash; that&rsquo;s important for me to understand before we begin?</label>
           <textarea id="anything-else" name="Anything else important"></textarea>
+        </div>
+
+        <div class="section-continue section-continue--final">
+          <button type="button" class="back-btn" data-back="6">&larr; Back</button>
         </div>
       </fieldset>
 
@@ -1135,6 +1169,50 @@
             revealNext(sectionIndex);
           });
         })(continueButtons[i]);
+      }
+
+      // Back buttons — go from current section back to the previous one.
+      // The previous section becomes editable again (continue button reappears).
+      function goBack(currentIndex) {
+        if (currentIndex <= 0) return;
+        var prevIndex = currentIndex - 1;
+        var currentSec = sections[currentIndex];
+        var prevSec = sections[prevIndex];
+
+        // Hide the current section
+        currentSec.classList.add('section-locked');
+        currentSec.classList.remove('section-revealing');
+
+        // Re-show the previous section's continue area
+        prevSec.classList.remove('section-complete');
+        var prevContinueWrap = prevSec.querySelector('.section-continue');
+        if (prevContinueWrap) prevContinueWrap.classList.remove('has-error');
+
+        // If stepping back from the last section, re-lock submit
+        if (currentIndex === sections.length - 1 && submitArea) {
+          submitArea.classList.add('intake-submit-locked');
+        }
+
+        currentSection = prevIndex;
+        setProgress(prevIndex);
+
+        // Smooth scroll to the previous section
+        setTimeout(function () {
+          var headerOffset = 90;
+          var rect = prevSec.getBoundingClientRect();
+          var targetTop = window.pageYOffset + rect.top - headerOffset;
+          window.scrollTo({ top: targetTop, behavior: 'smooth' });
+        }, 50);
+      }
+
+      var backButtons = document.querySelectorAll('[data-back]');
+      for (var b = 0; b < backButtons.length; b++) {
+        (function (btn) {
+          btn.addEventListener('click', function () {
+            var fromIdx = parseInt(btn.getAttribute('data-back'), 10) - 1;
+            goBack(fromIdx);
+          });
+        })(backButtons[b]);
       }
 
       // ===== Referral "Other" reveal =====
