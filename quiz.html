@@ -1190,6 +1190,11 @@
               name: name,
               emailCapturedAt: new Date().toISOString()
             }).then(function () {
+              // Remember (on this device) that this person finished the quiz,
+              // so the intake form can skip the "take the quiz" CTA.
+              try { localStorage.setItem('hof_quiz_completed', 'true'); }
+              catch (e) { /* ignore */ }
+
               if (typeof gtag === 'function') {
                 gtag('event', 'quiz_email_captured', {
                   profile: lastProfileKey || ''

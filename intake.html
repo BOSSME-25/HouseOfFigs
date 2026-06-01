@@ -488,6 +488,33 @@
       color: #8B5E5A;
       margin-top: 1.5rem;
     }
+    .post-intake-quiz {
+      margin-top: 2.5rem;
+    }
+    .post-intake-quiz .quiz-divider {
+      width: 60px;
+      height: 1px;
+      background-color: #d4c5b2;
+      margin: 0 auto 2rem;
+    }
+    .post-intake-quiz .quiz-eyebrow {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-size: 0.9375rem;
+      color: #6B7F5E;
+      margin: 0 0 0.5rem;
+      letter-spacing: 0.04em;
+    }
+    .post-intake-quiz .quiz-pitch {
+      max-width: 480px;
+      margin: 0 auto 1.25rem;
+      color: #4A3728;
+      line-height: 1.6;
+    }
+    .post-intake-quiz .quiz-pitch em {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+    }
 
     /* Error state */
     .intake-error {
@@ -1065,6 +1092,15 @@
       <p>I&rsquo;ll review every word before we meet so our 20 minutes can be focused on you &mdash; what your body is asking for, and how we can begin to listen.</p>
       <p>If you haven&rsquo;t booked yet, you can do so anytime:</p>
       <p><a href="https://calendly.com/houseoffigscompany/30min" target="_blank" rel="noopener" class="btn btn--primary">Book your free consultation &rarr;</a></p>
+
+      <!-- Optional quiz invitation — hidden if user has already completed it -->
+      <div id="post-intake-quiz" class="post-intake-quiz" hidden>
+        <div class="quiz-divider"></div>
+        <p class="quiz-eyebrow">One more thing</p>
+        <p class="quiz-pitch">Have you taken the <em>Eat the Rainbow</em> quiz yet? It&rsquo;s a 2-minute snapshot of what your body might be asking for &mdash; a helpful primer to bring into our conversation.</p>
+        <p><a href="quiz.html" class="btn btn--secondary">Take the 2-minute quiz &rarr;</a></p>
+      </div>
+
       <p class="tagline">Rooted wellness. Sustainable transformation.</p>
     </div>
 
@@ -1291,6 +1327,15 @@
 
           form.classList.add('hidden');
           thanks.classList.remove('hidden');
+
+          // Show the quiz invitation only if the user hasn't already taken
+          // the quiz on this device.
+          try {
+            var quizDone = localStorage.getItem('hof_quiz_completed') === 'true';
+            var quizCta = document.getElementById('post-intake-quiz');
+            if (quizCta && !quizDone) quizCta.removeAttribute('hidden');
+          } catch (e) { /* localStorage blocked — silently skip */ }
+
           thanks.scrollIntoView({ behavior: 'smooth', block: 'start' });
           if (typeof gtag === 'function') {
             gtag('event', 'intake_submit', { form: 'pre-consult' });
