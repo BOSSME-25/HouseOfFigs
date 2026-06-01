@@ -1676,14 +1676,28 @@ p {
     top: 68px;
     left: 0;
     right: 0;
-    bottom: 0;
+    /* Use dvh (dynamic viewport height) so iOS Safari's URL bar
+       doesn't cause the menu to extend below the visible area */
+    height: calc(100dvh - 68px);
+    height: calc(100vh - 68px); /* fallback for browsers without dvh */
     background-color: var(--color-soft-cream);
     flex-direction: column;
-    padding: 2rem;
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 1.5rem 1.5rem calc(1.5rem + env(safe-area-inset-bottom));
     gap: 0;
     transform: translateX(100%);
     transition: transform var(--transition-base);
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* Use dvh when supported (overrides the vh fallback above) */
+  @supports (height: 100dvh) {
+    .main-nav {
+      height: calc(100dvh - 68px);
+    }
   }
 
   .main-nav.open {
@@ -1695,12 +1709,22 @@ p {
     align-items: stretch;
     gap: 0;
     width: 100%;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .nav-links li {
+    list-style: none;
   }
 
   .nav-links a {
-    padding: 1rem 0;
-    border-bottom: 1px solid rgba(212, 197, 178, 0.3);
+    display: block;
+    padding: 0.85rem 0.5rem;
+    border-bottom: 1px solid rgba(212, 197, 178, 0.4);
     font-size: 1.0625rem;
+    text-decoration: none;
+    color: var(--color-deep-fig);
   }
 
   .nav-links a::after {
@@ -1708,9 +1732,22 @@ p {
   }
 
   .nav-cta {
-    margin: 1.5rem 0 0;
+    margin: 0.65rem 0 0;
     width: 100%;
     text-align: center;
+    padding: 0.85rem 1.25rem;
+  }
+
+  /* Make Fig·atry visible inside the mobile menu */
+  .main-nav .nav-figatry {
+    display: flex;
+    width: 100%;
+    margin: 1.5rem 0 0;
+    padding: 0.85rem 1.25rem;
+    justify-content: center;
+    text-align: center;
+    border: 1px solid var(--color-warm-sand);
+    border-radius: 4px;
   }
 
   .hero {
