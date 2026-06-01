@@ -411,6 +411,134 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && !modalEl.classList.contains('hidden')) closeDetail();
 });
 
+// Shared section map for intakes — used by both the in-browser detail view
+// and the print/PDF export so they're identical.
+const INTAKE_SECTION_MAP = [
+  {
+    title: 'About you',
+    fields: [
+      'Full name', 'full-name', 'Preferred name', 'preferred-name',
+      'Preferred name & pronouns',
+      'email', 'Email', 'phone', 'Phone',
+      'Date of birth', 'date-of-birth',
+      'Location', 'location', 'Occupation', 'occupation',
+      'How did you hear about House of Figs', 'referral', 'Referral',
+      'Preferred connection'
+    ]
+  },
+  {
+    title: 'Your story',
+    fields: [
+      'Main reason for reaching out', 'reason',
+      'Top health goals', 'goals',
+      'Past approaches that have worked',
+      'Past approaches that haven’t worked',
+      'How long have you been dealing with this',
+      'Energy and motivation right now',
+      'Weekly time available (1-10)',
+      'Best time of day to focus on wellness'
+    ]
+  },
+  {
+    title: 'Health snapshot',
+    fields: [
+      'Diagnosed conditions', 'conditions',
+      'Medications and supplements', 'meds',
+      'Allergies and sensitivities',
+      'Surgeries or major medical history',
+      'Family health patterns', 'family'
+    ]
+  },
+  {
+    title: 'Rainbow quick-scan',
+    fields: [
+      'Red symptoms', 'Orange symptoms', 'Yellow symptoms',
+      'Green symptoms', 'Green-white symptoms', 'White symptoms',
+      'Blue symptoms', 'Purple symptoms', 'Brown symptoms',
+      'Rainbow patterns that stand out', 'rainbow-stands-out'
+    ]
+  },
+  {
+    title: 'Lifestyle',
+    fields: [
+      'Average sleep', 'Sleep quality', 'Wake time', 'Bedtime',
+      'Digestion regularity', 'Digestion notes',
+      'Stress level (1-10)', 'Primary stressors',
+      'Stress habits', 'Nervous system practices',
+      'Movement frequency', 'Movement type',
+      'Daily water', 'Daily caffeine', 'Alcohol',
+      'Typical day of eating', 'typical-day',
+      'Eating-out frequency'
+    ]
+  },
+  {
+    title: 'Vision & readiness',
+    fields: [
+      'What you hope to walk away with', 'walk-away',
+      'Fears or blocks', 'fears',
+      'Anything else important', 'anything-else'
+    ]
+  }
+];
+
+const INTAKE_SECTION_SKIP_KEYS = new Set([
+  'id', '_kind', 'createdAt', 'updatedAt', 'userAgent', 'referer',
+  'email', 'Email', 'Full name', 'full-name'  // shown in header instead
+]);
+
+function renderIntakeDetailGrouped(data) {
+  // Returns HTML for the intake's grouped detail view — uses the same
+  // section structure as the PDF export.
+  let html = '';
+  const usedKeys = new Set();
+
+  INTAKE_SECTION_MAP.forEach(sect => {
+    const rows = [];
+    sect.fields.forEach(key => {
+      if (key in data && data[key] !== null && data[key] !== '') {
+        rows.push(
+          '<div class="intake-row">' +
+            '<div class="intake-row-label">' + escape(prettyLabel(key)) + '</div>' +
+            '<div class="intake-row-value">' + formatValue(data[key]) + '</div>' +
+          '</div>'
+        );
+        usedKeys.add(key);
+      }
+    });
+    if (rows.length > 0) {
+      html += '<div class="intake-section-block">';
+      html += '<h3 class="intake-section-title">' + escape(sect.title) + '</h3>';
+      html += '<div class="intake-rows">' + rows.join('') + '</div>';
+      html += '</div>';
+    }
+  });
+
+  // Anything not categorized
+  const otherKeys = Object.keys(data).filter(k =>
+    !usedKeys.has(k) && !INTAKE_SECTION_SKIP_KEYS.has(k)
+  );
+  if (otherKeys.length > 0) {
+    let rows = '';
+    otherKeys.forEach(key => {
+      const v = data[key];
+      if (v !== null && v !== '') {
+        rows +=
+          '<div class="intake-row">' +
+            '<div class="intake-row-label">' + escape(prettyLabel(key)) + '</div>' +
+            '<div class="intake-row-value">' + formatValue(v) + '</div>' +
+          '</div>';
+      }
+    });
+    if (rows) {
+      html += '<div class="intake-section-block">';
+      html += '<h3 class="intake-section-title">Other</h3>';
+      html += '<div class="intake-rows">' + rows + '</div>';
+      html += '</div>';
+    }
+  }
+  return html;
+}
+
 function findLinkedSubmissions(type, data) {
   // Cross-reference by email — if a quiz has an email, look up intakes with
   // the same email, and vice versa. Returns array of { kind, doc }.
@@ -426,22 +554,8 @@ function findLinkedSubmissions(type, data) {
 function renderDetail(type, data) {
   const title = type === 'quiz' ? 'Quiz response' : 'Intake submission';
 
-  const skipKeys = new Set(['id', '_kind', 'userAgent', 'referer']);
-  const keys = Object.keys(data).filter(k => !skipKeys.has(k));
-
   // Look for linked submissions in the other collection
   const linked = findLinkedSubmissions(type, data);
-
-  // Put a few important keys first if present
-  const priority = type === 'quiz'
-    ? ['profile', 'email', 'name', 'createdAt', 'emailCapturedAt', 'answers']
-    : ['full-name', 'name', 'Full name', 'email', 'Email',
-       'Preferred connection', 'Main reason for reaching out',
-       'Top health goals', 'createdAt'];
-  const orderedKeys = [
-    ...priority.filter(k => keys.includes(k)),
-    ...keys.filter(k => !priority.includes(k))
-  ];
 
   let html = `<h2>${escape(title)}</h2>`;
   html += `<div class="detail-meta">Submitted ${formatTime(data.createdAt)} &middot; `
@@ -468,12 +582,39 @@ function renderDetail(type, data) {
     html += '</div></div>';
   }
 
-  html += '<dl class="detail-fields">';
-  for (const key of orderedKeys) {
-    html += `<dt>${escape(key)}</dt>`;
-    html += `<dd>${formatValue(data[key])}</dd>`;
+  if (type === 'intake') {
+    // Header card with the person's identity (matches the PDF header)
+    const fullName = data['Full name'] || data['full-name'] || '';
+    const emailVal = data.email || data.Email || '';
+    const phone = data.Phone || data.phone || '';
+    const meta = [];
+    if (emailVal) meta.push(escape(emailVal));
+    if (phone) meta.push(escape(phone));
+    if (fullName || emailVal) {
+      html += '<div class="intake-header-card">';
+      html += '<div class="intake-header-name">' + escape(fullName || emailVal || 'Intake submission') + '</div>';
+      if (meta.length > 0) {
+        html += '<div class="intake-header-meta">' + meta.join(' &middot; ') + '</div>';
+      }
+      html += '</div>';
+    }
+    html += renderIntakeDetailGrouped(data);
+  } else {
+    // Quiz — keep the original priority + flat list
+    const skipKeys = new Set(['id', '_kind', 'userAgent', 'referer']);
+    const keys = Object.keys(data).filter(k => !skipKeys.has(k));
+    const priority = ['profile', 'email', 'name', 'createdAt', 'emailCapturedAt', 'answers'];
+    const orderedKeys = [
+      ...priority.filter(k => keys.includes(k)),
+      ...keys.filter(k => !priority.includes(k))
+    ];
+    html += '<dl class="detail-fields">';
+    for (const key of orderedKeys) {
+      html += `<dt>${escape(key)}</dt>`;
+      html += `<dd>${formatValue(data[key])}</dd>`;
+    }
+    html += '</dl>';
   }
-  html += '</dl>';
 
   setTimeout(() => {
     const copyLink = document.getElementById('copy-json');
@@ -803,77 +944,8 @@ function renderIntakePrintSections(data) {
   html += subParts.join(' &middot; ');
   html += '</p>';
 
-  // Section groupings — based on the intake form's 6 fieldsets
-  const sectionMap = [
-    {
-      title: 'About you',
-      fields: [
-        'Full name', 'full-name', 'Preferred name', 'preferred-name',
-        'Preferred name & pronouns',
-        'email', 'Email', 'phone', 'Phone',
-        'Date of birth', 'date-of-birth',
-        'Location', 'location', 'Occupation', 'occupation',
-        'How did you hear about House of Figs', 'referral', 'Referral',
-        'Preferred connection'
-      ]
-    },
-    {
-      title: 'Your story',
-      fields: [
-        'Main reason for reaching out', 'reason',
-        'Top health goals', 'goals',
-        'Past approaches that have worked',
-        'Past approaches that haven’t worked',
-        'How long have you been dealing with this',
-        'Energy and motivation right now',
-        'Weekly time available (1-10)',
-        'Best time of day to focus on wellness'
-      ]
-    },
-    {
-      title: 'Health snapshot',
-      fields: [
-        'Diagnosed conditions', 'conditions',
-        'Medications and supplements', 'meds',
-        'Allergies and sensitivities',
-        'Surgeries or major medical history',
-        'Family health patterns', 'family'
-      ]
-    },
-    {
-      title: 'Rainbow quick-scan',
-      fields: [
-        'Red symptoms', 'Orange symptoms', 'Yellow symptoms',
-        'Green symptoms', 'Green-white symptoms', 'White symptoms',
-        'Blue symptoms', 'Purple symptoms', 'Brown symptoms',
-        'Rainbow patterns that stand out', 'rainbow-stands-out'
-      ]
-    },
-    {
-      title: 'Lifestyle',
-      fields: [
-        'Average sleep', 'Sleep quality', 'Wake time', 'Bedtime',
-        'Digestion regularity', 'Digestion notes',
-        'Stress level (1-10)', 'Primary stressors',
-        'Stress habits', 'Nervous system practices',
-        'Movement frequency', 'Movement type',
-        'Daily water', 'Daily caffeine', 'Alcohol',
-        'Typical day of eating', 'typical-day',
-        'Eating-out frequency'
-      ]
-    },
-    {
-      title: 'Vision & readiness',
-      fields: [
-        'What you hope to walk away with', 'walk-away',
-        'Fears or blocks', 'fears',
-        'Anything else important', 'anything-else'
-      ]
-    }
-  ];
-
   const usedKeys = new Set();
-  sectionMap.forEach(sect => {
+  INTAKE_SECTION_MAP.forEach(sect => {
     const rows = [];
     sect.fields.forEach(key => {
       if (key in data && data[key] !== null && data[key] !== '') {
