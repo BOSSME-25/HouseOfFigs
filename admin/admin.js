@@ -808,8 +808,10 @@ function renderIntakePrintSections(data) {
     {
       title: 'About you',
       fields: [
-        'Full name', 'full-name', 'email', 'Email', 'phone', 'Phone',
-        'Date of birth', 'date-of-birth', 'Pronouns', 'pronouns',
+        'Full name', 'full-name', 'Preferred name', 'preferred-name',
+        'Preferred name & pronouns',
+        'email', 'Email', 'phone', 'Phone',
+        'Date of birth', 'date-of-birth',
         'Location', 'location', 'Occupation', 'occupation',
         'How did you hear about House of Figs', 'referral', 'Referral',
         'Preferred connection'
