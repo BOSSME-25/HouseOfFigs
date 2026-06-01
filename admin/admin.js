@@ -444,7 +444,9 @@ function renderDetail(type, data) {
   ];
 
   let html = `<h2>${escape(title)}</h2>`;
-  html += `<div class="detail-meta">Submitted ${formatTime(data.createdAt)} &middot; <a href="#" id="copy-json">Copy as JSON</a></div>`;
+  html += `<div class="detail-meta">Submitted ${formatTime(data.createdAt)} &middot; `
+       + `<a href="#" id="print-submission">Download / print</a> &middot; `
+       + `<a href="#" id="copy-json">Copy as JSON</a></div>`;
 
   if (linked.length > 0) {
     html += '<div class="linked-banner">';
@@ -487,9 +489,440 @@ function renderDetail(type, data) {
         openDetail(btn.dataset.type, btn.dataset.id);
       });
     });
+    const printLink = document.getElementById('print-submission');
+    if (printLink) {
+      printLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        openPrintView(type, data);
+      });
+    }
   }, 0);
 
   return html;
+}
+
+// Opens a clean, brand-styled printable view of a single submission in a
+// new tab, with the print dialog auto-triggered. Bethany can save as PDF
+// or print directly. Works on iPad / phone (AirPrint) too.
+function openPrintView(type, data) {
+  const title = type === 'quiz' ? 'Quiz response' : 'Intake submission';
+  const fileSlug = type === 'quiz'
+    ? (data.name || data.email || 'anonymous').toLowerCase().replace(/[^a-z0-9]+/g, '-')
+    : (data['Full name'] || data['full-name'] || data.email || 'anonymous').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const dateStr = new Date(data.createdAt || Date.now()).toLocaleDateString('en-US', {
+    year: 'numeric', month: 'short', day: 'numeric'
+  });
+  const docTitle = `House of Figs · ${title} · ${fileSlug} · ${dateStr}`;
+
+  const sections = renderPrintSections(type, data);
+
+  const printHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>${escape(docTitle)}</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after { box-sizing: border-box; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: #2C2C2C;
+    background: #fff;
+    margin: 0;
+    padding: 2.5rem 2rem;
+    max-width: 820px;
+    margin: 0 auto;
+    line-height: 1.55;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .ph {
+    border-bottom: 2px solid #D4C5B2;
+    padding-bottom: 1.25rem;
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 2rem;
+  }
+  .ph-brand {
+    font-family: 'Cormorant Garamond', serif;
+    color: #4A3728;
+  }
+  .ph-brand h1 {
+    font-size: 1.625rem;
+    margin: 0 0 0.15rem;
+    font-weight: 500;
+  }
+  .ph-brand .tagline {
+    font-style: italic;
+    color: #8B5E5A;
+    font-size: 0.875rem;
+  }
+  .ph-meta {
+    text-align: right;
+    font-size: 0.8125rem;
+    color: #897866;
+    line-height: 1.5;
+  }
+  .ph-meta .label {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.6875rem;
+    color: #8B5E5A;
+    font-weight: 500;
+  }
+  .doctitle {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.875rem;
+    color: #4A3728;
+    margin: 0 0 0.25rem;
+    font-weight: 500;
+  }
+  .subline {
+    color: #897866;
+    font-size: 0.9375rem;
+    margin: 0 0 2rem;
+  }
+  section { margin-bottom: 2rem; break-inside: avoid; }
+  section h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.25rem;
+    color: #4A3728;
+    margin: 0 0 0.75rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid #ece2cf;
+    font-weight: 500;
+  }
+  .field-row {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 0.75rem 1.5rem;
+    padding: 0.4rem 0;
+    border-bottom: 1px dashed #f0e6d4;
+    font-size: 0.875rem;
+  }
+  .field-row:last-child { border-bottom: none; }
+  .field-row dt {
+    font-weight: 500;
+    color: #6B7F5E;
+  }
+  .field-row dd {
+    margin: 0;
+    color: #2C2C2C;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+  }
+  .field-row dd.empty { color: #bbb; font-style: italic; }
+  .profile-card {
+    background: linear-gradient(135deg, #faf6ef 0%, #f5ede0 100%);
+    border: 1px solid #ece2cf;
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+  }
+  .profile-card-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.5rem;
+    color: #4A3728;
+    font-weight: 500;
+    line-height: 1.2;
+  }
+  .profile-card-subtitle {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    color: #8B5E5A;
+    margin-top: 0.25rem;
+  }
+  .profile-card-chips {
+    margin-top: 0.85rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+  }
+  .chip {
+    display: inline-block;
+    font-size: 0.75rem;
+    padding: 0.2rem 0.7rem;
+    border-radius: 20px;
+    background: #D4C5B2;
+    color: #4A3728;
+    text-transform: capitalize;
+  }
+  .chip-red    { background: #f4d6d3; color: #8b2a1f; }
+  .chip-orange { background: #f6dec5; color: #8e4a13; }
+  .chip-yellow { background: #f3e6b3; color: #8a6a0a; }
+  .chip-green  { background: #d3e3cc; color: #2d5a32; }
+  .chip-greenwhite { background: #e2ead9; color: #4b6647; }
+  .chip-white  { background: #ece9e2; color: #5c5046; }
+  .chip-blue   { background: #d3dceb; color: #2e4773; }
+  .chip-purple { background: #ddd0e6; color: #4d2d6d; }
+  .chip-brown  { background: #e0d2c1; color: #5a3b1f; }
+  .qa-list { list-style: none; padding: 0; margin: 0; counter-reset: q; }
+  .qa-list li {
+    counter-increment: q;
+    padding: 0.65rem 1rem 0.65rem 2.5rem;
+    background: #faf6ef;
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+    position: relative;
+  }
+  .qa-list li::before {
+    content: counter(q);
+    position: absolute;
+    left: 0.85rem;
+    top: 0.65rem;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.125rem;
+    color: #8B5E5A;
+  }
+  .qa-q { font-size: 0.8125rem; color: #4A3728; font-weight: 500; margin-bottom: 0.15rem; }
+  .qa-a { font-size: 0.8125rem; font-style: italic; color: #2C2C2C; }
+  .footer {
+    margin-top: 3rem;
+    padding-top: 1rem;
+    border-top: 1px solid #ece2cf;
+    font-size: 0.6875rem;
+    color: #b09f8d;
+    text-align: center;
+    letter-spacing: 0.04em;
+  }
+  @media print {
+    body { padding: 0.75in 0.6in; max-width: none; }
+    .no-print { display: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="ph">
+    <div class="ph-brand">
+      <h1>House of Figs</h1>
+      <div class="tagline">Rooted wellness. Sustainable transformation.</div>
+    </div>
+    <div class="ph-meta">
+      <div class="label">${escape(title)}</div>
+      <div>${escape(dateStr)}</div>
+    </div>
+  </div>
+
+  ${sections}
+
+  <div class="footer">
+    Confidential client record · Generated ${new Date().toLocaleString('en-US')}<br>
+    houseoffigs.org · bethany@houseoffigs.org
+  </div>
+
+  <script>
+    // Trigger print dialog after fonts load
+    window.addEventListener('load', function () {
+      setTimeout(function () { window.print(); }, 500);
+    });
+  </script>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank');
+  if (!win) {
+    alert('Please allow pop-ups to download. The print view opens in a new tab.');
+    return;
+  }
+  win.document.open();
+  win.document.write(printHtml);
+  win.document.close();
+}
+
+function renderPrintSections(type, data) {
+  if (type === 'quiz') {
+    return renderQuizPrintSections(data);
+  }
+  return renderIntakePrintSections(data);
+}
+
+function renderQuizPrintSections(data) {
+  let html = '';
+  const fullName = data.name || '';
+  const emailVal = data.email || '';
+
+  // Header info
+  html += '<h1 class="doctitle">' + escape(fullName || emailVal || 'Anonymous quiz response') + '</h1>';
+  html += '<p class="subline">';
+  if (emailVal) html += escape(emailVal) + ' &middot; ';
+  html += 'Session ' + escape(data.sessionId || '').slice(0, 8) + '…';
+  html += '</p>';
+
+  // Profile
+  if (data.profile) {
+    const p = data.profile;
+    const chips = (p.keys || []).map(k =>
+      '<span class="chip chip-' + escape(k) + '">' + escape(k) + '</span>'
+    ).join('');
+    html += '<section>';
+    html += '<h2>Profile result</h2>';
+    html += '<div class="profile-card">';
+    html += '<div class="profile-card-title">' + escape(p.title || '') + '</div>';
+    html += '<div class="profile-card-subtitle">' + escape(p.subtitle || '') + '</div>';
+    if (chips) html += '<div class="profile-card-chips">' + chips + '</div>';
+    html += '</div></section>';
+  }
+
+  // Answers
+  if (Array.isArray(data.answers) && data.answers.length > 0) {
+    html += '<section><h2>Quiz answers</h2><ol class="qa-list">';
+    data.answers.forEach(a => {
+      html += '<li>';
+      html += '<div class="qa-q">' + escape(a.question || '') + '</div>';
+      html += '<div class="qa-a">' + escape(a.answer || '') + '</div>';
+      html += '</li>';
+    });
+    html += '</ol></section>';
+  }
+
+  // Metadata
+  html += '<section><h2>Submission details</h2><dl>';
+  html += printField('Submitted', new Date(data.createdAt || Date.now()).toLocaleString('en-US'));
+  if (data.emailCapturedAt) {
+    html += printField('Email captured', new Date(data.emailCapturedAt).toLocaleString('en-US'));
+  }
+  html += printField('Session ID', data.sessionId || '—');
+  html += '</dl></section>';
+
+  return html;
+}
+
+function renderIntakePrintSections(data) {
+  const fullName = data['Full name'] || data['full-name'] || '';
+  const emailVal = data.email || data.Email || '';
+  const phone = data.Phone || data.phone || '';
+
+  let html = '';
+  html += '<h1 class="doctitle">' + escape(fullName || emailVal || 'Intake submission') + '</h1>';
+  html += '<p class="subline">';
+  const subParts = [];
+  if (emailVal) subParts.push(escape(emailVal));
+  if (phone) subParts.push(escape(phone));
+  html += subParts.join(' &middot; ');
+  html += '</p>';
+
+  // Section groupings — based on the intake form's 6 fieldsets
+  const sectionMap = [
+    {
+      title: 'About you',
+      fields: [
+        'Full name', 'full-name', 'email', 'Email', 'phone', 'Phone',
+        'Date of birth', 'date-of-birth', 'Pronouns', 'pronouns',
+        'Location', 'location', 'Occupation', 'occupation',
+        'How did you hear about House of Figs', 'referral', 'Referral',
+        'Preferred connection'
+      ]
+    },
+    {
+      title: 'Your story',
+      fields: [
+        'Main reason for reaching out', 'reason',
+        'Top health goals', 'goals',
+        'Past approaches that have worked',
+        'Past approaches that haven’t worked',
+        'How long have you been dealing with this',
+        'Energy and motivation right now',
+        'Weekly time available (1-10)',
+        'Best time of day to focus on wellness'
+      ]
+    },
+    {
+      title: 'Health snapshot',
+      fields: [
+        'Diagnosed conditions', 'conditions',
+        'Medications and supplements', 'meds',
+        'Allergies and sensitivities',
+        'Surgeries or major medical history',
+        'Family health patterns', 'family'
+      ]
+    },
+    {
+      title: 'Rainbow quick-scan',
+      fields: [
+        'Red symptoms', 'Orange symptoms', 'Yellow symptoms',
+        'Green symptoms', 'Green-white symptoms', 'White symptoms',
+        'Blue symptoms', 'Purple symptoms', 'Brown symptoms',
+        'Rainbow patterns that stand out', 'rainbow-stands-out'
+      ]
+    },
+    {
+      title: 'Lifestyle',
+      fields: [
+        'Average sleep', 'Sleep quality', 'Wake time', 'Bedtime',
+        'Digestion regularity', 'Digestion notes',
+        'Stress level (1-10)', 'Primary stressors',
+        'Stress habits', 'Nervous system practices',
+        'Movement frequency', 'Movement type',
+        'Daily water', 'Daily caffeine', 'Alcohol',
+        'Typical day of eating', 'typical-day',
+        'Eating-out frequency'
+      ]
+    },
+    {
+      title: 'Vision & readiness',
+      fields: [
+        'What you hope to walk away with', 'walk-away',
+        'Fears or blocks', 'fears',
+        'Anything else important', 'anything-else'
+      ]
+    }
+  ];
+
+  const usedKeys = new Set();
+  sectionMap.forEach(sect => {
+    const rows = [];
+    sect.fields.forEach(key => {
+      if (key in data && data[key] !== null && data[key] !== '') {
+        rows.push(printField(prettyLabel(key), data[key]));
+        usedKeys.add(key);
+      }
+    });
+    if (rows.length > 0) {
+      html += '<section><h2>' + escape(sect.title) + '</h2><dl>' + rows.join('') + '</dl></section>';
+    }
+  });
+
+  // Anything not categorized
+  const skipKeys = new Set(['createdAt', 'userAgent', 'referer']);
+  const otherKeys = Object.keys(data).filter(k =>
+    !usedKeys.has(k) && !skipKeys.has(k)
+  );
+  if (otherKeys.length > 0) {
+    let rows = '';
+    otherKeys.forEach(key => {
+      if (data[key] !== null && data[key] !== '') {
+        rows += printField(prettyLabel(key), data[key]);
+      }
+    });
+    if (rows) html += '<section><h2>Other</h2><dl>' + rows + '</dl></section>';
+  }
+
+  // Footer metadata
+  html += '<section><h2>Submission details</h2><dl>';
+  html += printField('Submitted', new Date(data.createdAt || Date.now()).toLocaleString('en-US'));
+  html += '</dl></section>';
+
+  return html;
+}
+
+function prettyLabel(key) {
+  // Convert "field-name" or "Field name" to readable Title Case
+  const k = key.replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim();
+  return k.charAt(0).toUpperCase() + k.slice(1);
+}
+
+function printField(label, value) {
+  if (Array.isArray(value)) {
+    value = value.join(', ');
+  }
+  if (value === null || value === undefined || value === '') {
+    return '<div class="field-row"><dt>' + escape(label) + '</dt>'
+      + '<dd class="empty">—</dd></div>';
+  }
+  return '<div class="field-row"><dt>' + escape(label) + '</dt>'
+    + '<dd>' + escape(String(value)) + '</dd></div>';
 }
 
 function formatValue(v) {
