@@ -169,7 +169,8 @@
     .intake-section input[type="tel"],
     .intake-section input[type="number"],
     .intake-section input[type="date"],
-    .intake-section textarea {
+    .intake-section textarea,
+    .intake-section select {
       width: 100%;
       padding: 0.65rem 0.85rem;
       border: 1px solid #d4c5b2;
@@ -181,7 +182,8 @@
       transition: border-color 0.18s, background-color 0.18s;
     }
     .intake-section input:focus,
-    .intake-section textarea:focus {
+    .intake-section textarea:focus,
+    .intake-section select:focus {
       outline: none;
       border-color: #6B7F5E;
       background-color: #fff;
@@ -190,6 +192,18 @@
       min-height: 90px;
       resize: vertical;
       line-height: 1.55;
+    }
+    .intake-section select {
+      appearance: none;
+      -webkit-appearance: none;
+      padding-right: 2.5rem;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'><path d='M1 1L6 6L11 1' stroke='%238B5E5A' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+      background-repeat: no-repeat;
+      background-position: right 1rem center;
+      cursor: pointer;
+    }
+    .intake-section #referral-other {
+      margin-top: 0.65rem;
     }
 
     /* --- Progressive section reveal --- */
@@ -552,7 +566,18 @@
 
         <div class="field">
           <label class="field-label" for="referral">How did you hear about House of Figs?</label>
-          <input type="text" id="referral" name="How did you hear about House of Figs">
+          <select id="referral" name="How did you hear about House of Figs">
+            <option value="">Select an option…</option>
+            <option value="Instagram (@hofigs)">Instagram (@hofigs)</option>
+            <option value="A friend or family member">A friend or family member</option>
+            <option value="A current or past client">A current or past client</option>
+            <option value="Crown Heirs Hair Den">Crown Heirs Hair Den</option>
+            <option value="Google or another search engine">Google or another search engine</option>
+            <option value="A podcast, article, or interview">A podcast, article, or interview</option>
+            <option value="At an event or in person">At an event or in person</option>
+            <option value="Other">Other</option>
+          </select>
+          <input type="text" id="referral-other" name="How did you hear (other)" placeholder="Please tell me a little more&hellip;" hidden>
         </div>
 
         <div class="field">
@@ -1112,6 +1137,21 @@
         })(continueButtons[i]);
       }
 
+      // ===== Referral "Other" reveal =====
+      var referralSelect = document.getElementById('referral');
+      var referralOther = document.getElementById('referral-other');
+      if (referralSelect && referralOther) {
+        referralSelect.addEventListener('change', function () {
+          if (referralSelect.value === 'Other') {
+            referralOther.hidden = false;
+            setTimeout(function () { referralOther.focus(); }, 50);
+          } else {
+            referralOther.hidden = true;
+            referralOther.value = '';
+          }
+        });
+      }
+
       // ===== AJAX submit to Formspree =====
       var form = document.getElementById('intake-form');
       var thanks = document.getElementById('intake-thanks');
@@ -1145,6 +1185,16 @@
           if (typeof payload.email === 'string') {
             payload.email = payload.email.trim().toLowerCase();
           }
+
+          // If "Other" was the referral choice, use the typed-in text as
+          // the actual value (so the admin sees one clean answer).
+          if (payload['How did you hear about House of Figs'] === 'Other'
+              && typeof payload['How did you hear (other)'] === 'string'
+              && payload['How did you hear (other)'].trim()) {
+            payload['How did you hear about House of Figs'] =
+              'Other: ' + payload['How did you hear (other)'].trim();
+          }
+          delete payload['How did you hear (other)'];
           payload.createdAt = new Date().toISOString();
           payload.userAgent = (navigator.userAgent || '').slice(0, 500);
           payload.referer = (document.referrer || '').slice(0, 500);
