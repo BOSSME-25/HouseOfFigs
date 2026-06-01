@@ -49,17 +49,6 @@ function injectStyles() {
       border-bottom-color: #8B5E5A;
       outline: none;
     }
-    .define-term::after {
-      content: '?';
-      display: inline-block;
-      font-size: 0.65em;
-      font-weight: 600;
-      vertical-align: super;
-      margin-left: 0.15em;
-      color: #8B5E5A;
-      line-height: 1;
-    }
-
     /* Backdrop (mobile only — taps elsewhere to close) */
     .gloss-backdrop {
       position: fixed;

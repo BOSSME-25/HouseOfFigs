@@ -396,6 +396,15 @@
       border-color: #6B7F5E;
     }
     .check-group input { margin-top: 0.2rem; flex-shrink: 0; }
+    .check-group .check-label-text {
+      flex: 1;
+      min-width: 0;
+      line-height: 1.55;
+    }
+    .check-group .check-examples {
+      color: #897866;
+      font-style: italic;
+    }
 
     /* Color block in rainbow scan */
     .color-block { margin-bottom: 1.5rem; }
@@ -828,7 +837,7 @@
           <div class="check-group">
             <label><input type="checkbox" name="Green-white symptoms" value="Heavy periods or severe PMS"> Heavy periods or severe PMS</label>
             <label><input type="checkbox" name="Green-white symptoms" value="Breast tenderness (cyclical or constant)"> Breast tenderness (cyclical or constant)</label>
-            <label><input type="checkbox" name="Green-white symptoms" value="Estrogen-dominance symptoms (bloating, mood swings, water retention, heavy periods, breast tenderness)"> <button type="button" class="define-term" data-term="estrogen-dominance">Estrogen-dominance</button> symptoms <span style="color:#897866;font-style:italic;">(bloating, mood swings, water retention, breast tenderness)</span></label>
+            <label><input type="checkbox" name="Green-white symptoms" value="Estrogen-dominance symptoms (bloating, mood swings, water retention, heavy periods, breast tenderness)"><span class="check-label-text"><button type="button" class="define-term" data-term="estrogen-dominance">Estrogen-dominance</button> symptoms <span class="check-examples">(bloating, mood swings, water retention, breast tenderness)</span></span></label>
             <label><input type="checkbox" name="Green-white symptoms" value="Difficulty detoxing from illness or medication"> Difficulty detoxing from illness or meds</label>
           </div>
         </div>
