@@ -515,6 +515,55 @@
       font-family: 'Cormorant Garamond', serif;
       font-style: italic;
     }
+    .post-intake-figatry {
+      margin-top: 2.5rem;
+    }
+    .post-intake-figatry .quiz-divider,
+    .post-intake-figatry .quiz-eyebrow,
+    .post-intake-figatry .quiz-pitch {
+      /* reuse the post-intake-quiz styling for visual consistency */
+    }
+    .post-intake-figatry .quiz-eyebrow { color: #8B5E5A; }
+    .post-intake-figatry .quiz-pitch strong {
+      color: #8B5E5A;
+      font-weight: 500;
+    }
+    /* Inherit divider/eyebrow/pitch sizing from .post-intake-quiz */
+    .post-intake-figatry .quiz-divider {
+      width: 60px; height: 1px; background-color: #d4c5b2;
+      margin: 0 auto 2rem;
+    }
+    .post-intake-figatry .quiz-eyebrow {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-size: 0.9375rem;
+      margin: 0 0 0.5rem;
+      letter-spacing: 0.04em;
+    }
+    .post-intake-figatry .quiz-pitch {
+      max-width: 480px;
+      margin: 0 auto 1.25rem;
+      color: #4A3728;
+      line-height: 1.6;
+    }
+    .btn--figatry {
+      background-color: #8B5E5A;
+      color: #fff;
+      border: none;
+      padding: 0.85rem 1.85rem;
+      border-radius: 6px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9375rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      text-decoration: none;
+      display: inline-block;
+      transition: background-color 0.2s ease;
+    }
+    .btn--figatry:hover {
+      background-color: #4A3728;
+      color: #fff;
+    }
 
     /* Error state */
     .intake-error {
@@ -1099,6 +1148,14 @@
         <p class="quiz-eyebrow">One more thing</p>
         <p class="quiz-pitch">Have you taken the <em>Eat the Rainbow</em> quiz yet? It&rsquo;s a 2-minute snapshot of what your body might be asking for &mdash; a helpful primer to bring into our conversation.</p>
         <p><a href="quiz.html" class="btn btn--secondary">Take the 2-minute quiz &rarr;</a></p>
+      </div>
+
+      <!-- Fig·atry app invitation — daily companion -->
+      <div class="post-intake-figatry">
+        <div class="quiz-divider"></div>
+        <p class="quiz-eyebrow">For the days in between</p>
+        <p class="quiz-pitch">Want a daily place to log meals, movement, and how you&rsquo;re feeling &mdash; and see your patterns over time? <strong>Fig&middot;atry</strong> is the companion app I&rsquo;ll use alongside our work together. Free, no subscription.</p>
+        <p><a href="https://figatry.com" target="_blank" rel="noopener" class="btn btn--figatry">Open Fig&middot;atry &rarr;</a></p>
       </div>
 
       <p class="tagline">Rooted wellness. Sustainable transformation.</p>
