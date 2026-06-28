@@ -29,6 +29,10 @@ const NOTIFY_TO = [
 ];
 const DASHBOARD_URL = 'https://houseoffigs.org/admin';
 
+// Client-facing links used in the quiz follow-up emails.
+const INTAKE_URL = 'https://houseoffigs.org/intake.html';
+const BOOKING_URL = 'https://calendly.com/houseoffigscompany/30min';
+
 const gmailPassword = defineSecret('GMAIL_APP_PASSWORD');
 
 setGlobalOptions({ region: 'us-central1', maxInstances: 5 });
@@ -181,6 +185,161 @@ exports.onQuizEmailCaptured = onDocumentUpdated(
         ? `New quiz lead — ${name} (${profile})`
         : `New quiz lead — ${name}`,
       html: html
+    });
+  }
+);
+
+// =========================================================================
+// QUIZ FOLLOW-UP — personalized email sent TO the quiz-taker.
+// One email per profile (Rebuilder / Balancer / Energizer), fired once when
+// the email gate is submitted. Keyed off after.profile.title, which the quiz
+// writes before the email update lands. Runs as its own function so a failure
+// here never blocks the admin lead notification above.
+// =========================================================================
+
+// Copy is provided by the client (House of Figs). Keyed by the exact
+// profile.title string the quiz stores.
+const QUIZ_FOLLOWUPS = {
+  'The Rebuilder': {
+    subject: 'Your results are in — you’re a Rebuilder',
+    preview: 'Why the intake form is the other half of your picture.',
+    paragraphs: [
+      'Thank you for taking a few quiet minutes to check in with your body. Your answers point to a clear pattern: you’re a Rebuilder, and your body is asking for restoration.',
+      'A Rebuilder’s body is reaching for the deep, jewel-toned foods right now: the reds, blues, and purples. Cooked tomatoes and pomegranate. Wild blueberries and Concord grapes. Beets, figs, and black grapes. These are the foods of recovery and renewal, the ones that help a tired, worked-hard body settle, repair, and come back to itself.',
+      'If you’d like somewhere to begin today, keep it small: add one deep-colored food to a single meal. A handful of frozen wild blueberries in the morning. Roasted beets at dinner. Nothing to overhaul, just one quiet act of restoration. Because this was never about restriction. It’s about rebuilding.',
+      'When you’re ready to go deeper, I’d love to meet you — and the next step is your intake form. Think of your quiz and your intake as a pair. The quiz was a first glance at which colors your body is reaching for. The intake fills in the rest of your story: your rhythms, your history, the way your body has been speaking to you day to day. On their own, each tells me a little. Together, they give us a clear picture of where restoration needs to begin, so we’re never guessing. By the time we sit down for your free consultation, your starting point is already in front of us, and our whole conversation can go toward the path forward.',
+      'It only takes a few minutes, and it’s the most useful thing you can do before we talk.'
+    ]
+  },
+  'The Balancer': {
+    subject: 'Your results are in — you’re a Balancer',
+    preview: 'Why the intake form is the other half of your picture.',
+    paragraphs: [
+      'Thank you for taking a few quiet minutes to check in with your body. Your answers point to a clear pattern: you’re a Balancer, and your body is asking for harmony and gentle support.',
+      'A Balancer’s body is doing the quiet, everyday work of digesting, clearing, and grounding, and it’s reaching for the greens, whites, and earthy browns to help. Leafy greens and broccoli sprouts. Garlic, onions, and leeks. Lentils, oats, and flaxseed. These are the foods that steady digestion, support your body’s natural rhythms of renewal, and help everything run a little smoother.',
+      'If you’d like somewhere to begin today, make it simple: add one grounding food to your plate. A spoonful of ground flax in the morning. A handful of greens at lunch. Sautéed onions at dinner. One small step toward balance.',
+      'When you’re ready to go deeper, I’d love to meet you — and the next step is your intake form. Think of your quiz and your intake as a pair. The quiz was a first glance at which colors your body is reaching for. The intake fills in the rest of your story: your rhythms, your history, the way your body has been speaking to you day to day. On their own, each tells me a little. Together, they give us a clear picture of where your body is asking for balance, so we’re never guessing. By the time we sit down for your free consultation, your starting point is already in front of us, and our whole conversation can go toward the path forward.',
+      'It only takes a few minutes, and it’s the most useful thing you can do before we talk.'
+    ]
+  },
+  'The Energizer': {
+    subject: 'Your results are in — you’re an Energizer',
+    preview: 'Why the intake form is the other half of your picture.',
+    paragraphs: [
+      'Thank you for taking a few quiet minutes to check in with your body. Your answers point to a clear pattern: you’re an Energizer, and your body is hungry for fuel and defense.',
+      'An Energizer’s body is looking for steady energy through the day and strong, resilient defenses, and it’s reaching for the oranges, yellows, and earthy browns to get there. Sweet potato, carrots, and pumpkin. Citrus, pineapple, and yellow peppers. Oats, lentils, and quinoa. These are the foods that build steady fuel, support your immune strength, and soften those afternoon crashes.',
+      'If you’d like somewhere to begin today, keep it easy: add one fueling food to your plate. Roasted sweet potato at dinner. A squeeze of fresh citrus over your greens. A warm bowl of oats to start the morning. One small step toward steadier energy.',
+      'When you’re ready to go deeper, I’d love to meet you — and the next step is your intake form. Think of your quiz and your intake as a pair. The quiz was a first glance at which colors your body is reaching for. The intake fills in the rest of your story: your rhythms, your history, the way your body has been speaking to you day to day. On their own, each tells me a little. Together, they give us a clear picture of where your energy is asking to be rebuilt, so we’re never guessing. By the time we sit down for your free consultation, your starting point is already in front of us, and our whole conversation can go toward the path forward.',
+      'It only takes a few minutes, and it’s the most useful thing you can do before we talk.'
+    ]
+  }
+};
+
+// First name only, with a graceful fallback so the greeting always reads well.
+function firstNameOf(name) {
+  const first = String(name == null ? '' : name).trim().split(/\s+/)[0];
+  return first || 'there';
+}
+
+// Client-facing branded shell: two CTAs (intake primary, booking secondary)
+// plus Bethany's signature. Distinct from the admin emailShell.
+function clientEmailShell(firstName, tpl) {
+  const paras = tpl.paragraphs
+    .map((p) => `<p style="font-size:0.9375rem;color:#2C2C2C;line-height:1.7;margin:0 0 18px;">${escape(p)}</p>`)
+    .join('\n          ');
+
+  return `<!doctype html>
+<html><body style="margin:0;padding:0;background-color:#f5f0ea;font-family:'Helvetica Neue',Arial,sans-serif;color:#2C2C2C;">
+  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;opacity:0;">${escape(tpl.preview)}</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f0ea;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(74,55,40,0.08);">
+        <tr><td style="background:linear-gradient(135deg,#4A3728 0%,#6B4F3A 100%);padding:24px 32px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+            <td style="vertical-align:middle;">
+              <div style="font-family:Georgia,serif;font-size:1.5rem;color:#F5F0EA;font-weight:500;letter-spacing:0.01em;">House of Figs</div>
+              <div style="font-family:Georgia,serif;font-style:italic;color:rgba(245,240,234,0.7);font-size:0.875rem;margin-top:2px;">Rooted wellness. Sustainable transformation.</div>
+            </td>
+            <td align="right" style="vertical-align:middle;width:104px;">
+              <img src="https://houseoffigs.org/images/logo-light-email.png" alt="House of Figs" width="104" height="90" style="display:block;border:0;outline:none;text-decoration:none;">
+            </td>
+          </tr></table>
+        </td></tr>
+        <tr><td style="padding:32px;">
+          <p style="font-size:0.9375rem;color:#2C2C2C;line-height:1.7;margin:0 0 18px;">Hi ${escape(firstName)},</p>
+          ${paras}
+          <table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0 10px;">
+            <tr><td style="border-radius:6px;background-color:#8B5E5A;">
+              <a href="${escape(INTAKE_URL)}" style="display:inline-block;padding:13px 26px;color:#ffffff;text-decoration:none;font-weight:600;font-size:0.9375rem;">Complete your intake &rarr;</a>
+            </td></tr>
+          </table>
+          <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0;">
+            <tr><td style="border-radius:6px;border:1px solid #8B5E5A;">
+              <a href="${escape(BOOKING_URL)}" style="display:inline-block;padding:12px 25px;color:#8B5E5A;text-decoration:none;font-weight:600;font-size:0.9375rem;">Book your free consultation &rarr;</a>
+            </td></tr>
+          </table>
+          <div style="margin-top:28px;padding-top:20px;border-top:1px solid #ece2cf;">
+            <p style="font-family:Georgia,serif;font-style:italic;color:#4A3728;font-size:1rem;margin:0 0 10px;">Rooted with you,</p>
+            <div style="font-family:Georgia,serif;font-size:1.05rem;color:#4A3728;font-weight:500;">Bethany Grissum</div>
+            <div style="font-size:0.8125rem;color:#897866;line-height:1.6;margin-top:3px;">Founder, House of Figs<br>
+              <span style="font-style:italic;">Rooted wellness. Sustainable transformation.</span><br>
+              <a href="https://houseoffigs.org" style="color:#8B5E5A;text-decoration:none;">houseoffigs.org</a> &middot; @hofigs</div>
+          </div>
+        </td></tr>
+        <tr><td style="padding:16px 32px 28px;border-top:1px solid #ece2cf;color:#897866;font-size:0.6875rem;line-height:1.5;">
+          You’re receiving this because you completed the color quiz at
+          <a href="https://houseoffigs.org/quiz.html" style="color:#8B5E5A;text-decoration:none;">houseoffigs.org</a>.
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+}
+
+// Plain-text alternative — improves deliverability and serves text-only clients.
+function clientPlainText(firstName, tpl) {
+  return (
+    `Hi ${firstName},\n\n` +
+    tpl.paragraphs.join('\n\n') +
+    `\n\nComplete your intake: ${INTAKE_URL}` +
+    `\nBook your free consultation: ${BOOKING_URL}\n\n` +
+    `Rooted with you,\nBethany\n\n` +
+    `Bethany Grissum — Founder, House of Figs\n` +
+    `Rooted wellness. Sustainable transformation.\n` +
+    `houseoffigs.org · @hofigs`
+  );
+}
+
+exports.onQuizFollowupEmail = onDocumentUpdated(
+  {
+    document: 'quizzes/{docId}',
+    secrets: [gmailPassword]
+  },
+  async (event) => {
+    const before = event.data && event.data.before.data();
+    const after = event.data && event.data.after.data();
+    if (!before || !after) return;
+
+    // Same gate as the admin notification: fire once, when email first appears.
+    if (before.email || !after.email) return;
+
+    const profileTitle = after.profile && after.profile.title;
+    const tpl = profileTitle && QUIZ_FOLLOWUPS[profileTitle];
+    if (!tpl) {
+      console.warn(`No follow-up template for profile "${profileTitle}" (quiz ${event.params.docId}); skipping client email.`);
+      return;
+    }
+
+    const firstName = firstNameOf(after.name);
+
+    const transport = makeTransport();
+    await transport.sendMail({
+      from: `Bethany Grissum, House of Figs <${FROM_ADDRESS}>`,
+      to: after.email,
+      replyTo: FROM_ADDRESS,
+      subject: tpl.subject,
+      text: clientPlainText(firstName, tpl),
+      html: clientEmailShell(firstName, tpl)
     });
   }
 );
