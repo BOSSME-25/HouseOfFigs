@@ -32,8 +32,10 @@ const NOTIFY_TO = [
 ];
 const DASHBOARD_URL = 'https://houseoffigs.org/admin';
 
-// Client-facing links used in the quiz follow-up emails.
-const INTAKE_URL = 'https://houseoffigs.org/intake.html';
+// Client-facing links used in the quiz follow-up emails. The intake link
+// carries ?from=quiz — the intake page is gated quiz-first, and this is
+// how emailed quiz-completers pass the gate on any device.
+const INTAKE_URL = 'https://houseoffigs.org/intake.html?from=quiz';
 const BOOKING_URL = 'https://calendly.com/houseoffigscompany/30min';
 
 const gmailPassword = defineSecret('GMAIL_APP_PASSWORD');

@@ -599,7 +599,6 @@
           <li><a href="services.html">Services</a></li>
           <li><a href="testimonials.html">Testimonials</a></li>
           <li><a href="contact.html">Contact</a></li>
-          <li><a href="intake.html">Intake</a></li>
         </ul>
         <a href="https://figatry.com" target="_blank" rel="noopener" class="nav-figatry"><span class="nav-figatry-mark">Fig&middot;atry</span> &rarr;</a>
         <a href="https://calendly.com/houseoffigscompany/30min" target="_blank" rel="noopener" class="btn btn--primary nav-cta">Book a Consultation</a>
@@ -608,6 +607,18 @@
   </header>
 
   <main>
+
+    <!-- Quiz-first gate: the intake is reached from the quiz results, the
+         follow-up emails, or a prior visit — never cold from the site. -->
+    <section class="intake-hero" id="intake-gate" style="display:none;">
+      <div class="eyebrow">One step first</div>
+      <h1>Let&rsquo;s start with your colors.</h1>
+      <p>This intake works best after the free color quiz &mdash; it&rsquo;s how we learn which of your body&rsquo;s systems are asking for support, and it takes about three minutes. Once you have your profile, the intake link comes straight to your inbox.</p>
+      <p style="margin-top:1.5rem;"><a href="quiz.html" class="btn btn--primary">Take the free color quiz &rarr;</a></p>
+      <p style="margin-top:1rem;font-size:0.875rem;color:#897866;font-style:italic;">Already took the quiz? Use the intake link from your results email &mdash; or email <a href="mailto:bethany@houseoffigs.org" style="color:#8B5E5A;">bethany@houseoffigs.org</a> and she&rsquo;ll send it again.</p>
+    </section>
+
+    <div id="intake-content">
 
     <!-- Intake hero -->
     <section class="intake-hero">
@@ -1285,6 +1296,28 @@
       <p class="tagline">Rooted wellness. Sustainable transformation.</p>
     </div>
 
+    </div><!-- /#intake-content -->
+
+    <script>
+      // Quiz-first gate. Pass-through when: they completed the quiz on this
+      // device (flag set by the quiz results gate), or they arrived from an
+      // emailed link carrying ?from=quiz (also sets the flag for later
+      // visits). Everyone else sees the warm quiz invitation instead.
+      (function () {
+        var fromQuiz = new URLSearchParams(window.location.search).get('from') === 'quiz';
+        if (fromQuiz) {
+          try { localStorage.setItem('hof_quiz_completed', 'true'); } catch (e) { /* ignore */ }
+        }
+        var done = false;
+        try { done = localStorage.getItem('hof_quiz_completed') === 'true'; } catch (e) { /* ignore */ }
+        if (!fromQuiz && !done) {
+          document.getElementById('intake-content').style.display = 'none';
+          document.getElementById('intake-gate').style.display = '';
+          if (typeof gtag === 'function') gtag('event', 'intake_gate_shown');
+        }
+      })();
+    </script>
+
   </main>
 
   <!-- FOOTER -->
@@ -1303,7 +1336,6 @@
           <li><a href="services.html">Services</a></li>
           <li><a href="testimonials.html">Testimonials</a></li>
           <li><a href="contact.html">Contact</a></li>
-          <li><a href="intake.html">Intake</a></li>
         </ul>
       </div>
       <div class="footer-social">
