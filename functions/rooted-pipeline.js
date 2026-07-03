@@ -245,63 +245,101 @@ function registerRootedPipeline({ gmailPassword, makeTransport, emailShell, FROM
     async (event) => {
       const intake = event.data && event.data.data();
       if (!intake) return;
+      await processIntakeAssessment(intake, event.params.docId, admin.firestore());
+    }
+  );
+
+  // Shared by onIntakeAssessment (new submissions) and
+  // onAssessmentRequested (admin backfill of earlier intakes).
+  async function processIntakeAssessment(intake, intakeId, db) {
+    const now = new Date().toISOString();
+
+    // 1–2. Engine (safety screen runs first inside it). Form-source aware
+    // per the Client Journey briefing: web submissions carry the full
+    // symptom lists and score as a full intake; only paper Quick-Start
+    // entries (keyed in manually with Form source = 'paper-quickstart')
+    // use the 2-of-4 soft-lean rule.
+    const formType = intake['Form source'] === 'paper-quickstart' ? 'quickstart' : 'full';
+    const assessment = runAssessment(intake, { formType });
+
+    // 3. Tier 1 — store the practitioner-side assessment. Idempotent:
+    //    keyed by intake id, so re-runs overwrite rather than duplicate.
+    await db.collection('assessments').doc(intakeId).set({
+      ...assessment,
+      intakeId,
+      status: assessment.halted ? 'halted' : 'generated',
+      // Stage 5: auto-drafted consult prep sheet (Bethany edits in admin).
+      prepSheet: draftPrepSheet(assessment),
+      // Journey milestones — set by admin buttons and functions as the
+      // client moves through the funnel. Timestamps, null until reached.
+      journey: {
+        consultAt: null,        // scheduled consult datetime (admin-entered)
+        consultHeldAt: null,    // set by "Mark consult held"
+        followUpAt: null,       // scheduled follow-up datetime
+        email1SentAt: null,     // post-consult handoff email
+        email2SentAt: null,     // the single day-3/4 nudge
+        gdReturnedAt: null      // Going Deeper form received
+      },
+      createdAt: now,
+      updatedAt: now
+    });
+
+    if (assessment.halted) {
+      // HARD STOP — nothing client-facing generates. Flag Bethany.
+      const body = assessment.haltReasons
+        .map(r => `<div style="margin-bottom:10px;font-size:0.9375rem;color:#2C2C2C;line-height:1.5;">&bull; ${escape(r)}</div>`)
+        .join('');
+      const html = emailShell(
+        `Assessment pipeline HALTED — <em>${escape(assessment.client.name || 'Unnamed')}</em>`,
+        `<p style="font-size:0.9375rem;color:#2C2C2C;line-height:1.6;">The safety screen stopped automated generation for this intake. No client documents were created. Review before proceeding:</p>${body}`,
+        DASHBOARD_URL,
+        'Review in dashboard'
+      );
+      const transport = makeTransport();
+      await transport.sendMail({
+        from: `House of Figs <${FROM_ADDRESS}>`,
+        to: NOTIFY_TO.join(', '),
+        subject: `⚠ Assessment halted — ${assessment.client.name || 'Unnamed'}`,
+        html
+      });
+      return;
+    }
+
+    // 4. Tier 2 — draft the client plan via Claude (structured output).
+    await draftAndStorePlan(assessment, intakeId, db);
+  }
+
+  // -------------------------------------------------------------------
+  // Backfill: intakes submitted before the pipeline existed have no
+  // assessment. The admin's "Process earlier intakes" button creates a
+  // stub assessment doc with status "requested"; this trigger runs the
+  // exact same processing path as a fresh submission. Nothing is ever
+  // sent to the client. (The pipeline's own writes create docs with
+  // status generated/halted, so the guard below ignores them.)
+  // -------------------------------------------------------------------
+  const onAssessmentRequested = onDocumentCreated(
+    {
+      document: 'assessments/{docId}',
+      secrets: [gmailPassword, anthropicKey],
+      timeoutSeconds: 300,
+      memory: '512MiB'
+    },
+    async (event) => {
+      const stub = event.data && event.data.data();
+      if (!stub || stub.status !== 'requested') return;
       const intakeId = event.params.docId;
       const db = admin.firestore();
-      const now = new Date().toISOString();
 
-      // 1–2. Engine (safety screen runs first inside it). Form-source aware
-      // per the Client Journey briefing: web submissions carry the full
-      // symptom lists and score as a full intake; only paper Quick-Start
-      // entries (keyed in manually with Form source = 'paper-quickstart')
-      // use the 2-of-4 soft-lean rule.
-      const formType = intake['Form source'] === 'paper-quickstart' ? 'quickstart' : 'full';
-      const assessment = runAssessment(intake, { formType });
-
-      // 3. Tier 1 — store the practitioner-side assessment. Idempotent:
-      //    keyed by intake id, so re-runs overwrite rather than duplicate.
-      await db.collection('assessments').doc(intakeId).set({
-        ...assessment,
-        intakeId,
-        status: assessment.halted ? 'halted' : 'generated',
-        // Stage 5: auto-drafted consult prep sheet (Bethany edits in admin).
-        prepSheet: draftPrepSheet(assessment),
-        // Journey milestones — set by admin buttons and functions as the
-        // client moves through the funnel. Timestamps, null until reached.
-        journey: {
-          consultAt: null,        // scheduled consult datetime (admin-entered)
-          consultHeldAt: null,    // set by "Mark consult held"
-          followUpAt: null,       // scheduled follow-up datetime
-          email1SentAt: null,     // post-consult handoff email
-          email2SentAt: null,     // the single day-3/4 nudge
-          gdReturnedAt: null      // Going Deeper form received
-        },
-        createdAt: now,
-        updatedAt: now
-      });
-
-      if (assessment.halted) {
-        // HARD STOP — nothing client-facing generates. Flag Bethany.
-        const body = assessment.haltReasons
-          .map(r => `<div style="margin-bottom:10px;font-size:0.9375rem;color:#2C2C2C;line-height:1.5;">&bull; ${escape(r)}</div>`)
-          .join('');
-        const html = emailShell(
-          `Assessment pipeline HALTED — <em>${escape(assessment.client.name || 'Unnamed')}</em>`,
-          `<p style="font-size:0.9375rem;color:#2C2C2C;line-height:1.6;">The safety screen stopped automated generation for this intake. No client documents were created. Review before proceeding:</p>${body}`,
-          DASHBOARD_URL,
-          'Review in dashboard'
-        );
-        const transport = makeTransport();
-        await transport.sendMail({
-          from: `House of Figs <${FROM_ADDRESS}>`,
-          to: NOTIFY_TO.join(', '),
-          subject: `⚠ Assessment halted — ${assessment.client.name || 'Unnamed'}`,
-          html
-        });
+      const intakeSnap = await db.collection('intakes').doc(intakeId).get();
+      if (!intakeSnap.exists) {
+        await db.collection('assessments').doc(intakeId).set({
+          status: 'request_failed',
+          requestError: 'No intake found with this id.',
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
         return;
       }
-
-      // 4. Tier 2 — draft the client plan via Claude (structured output).
-      await draftAndStorePlan(assessment, intakeId, db);
+      await processIntakeAssessment(intakeSnap.data(), intakeId, db);
     }
   );
 
@@ -778,7 +816,7 @@ function registerRootedPipeline({ gmailPassword, makeTransport, emailShell, FROM
     }
   );
 
-  return { onIntakeAssessment, onGoingDeeperCreated, onHoldCleared, onPlanApproved, onConsultHeld, dailyNudges };
+  return { onIntakeAssessment, onAssessmentRequested, onGoingDeeperCreated, onHoldCleared, onPlanApproved, onConsultHeld, dailyNudges };
 }
 
 module.exports = { registerRootedPipeline, leakCheck, planText, PLAN_SCHEMA, buildDraftPrompt, DRAFT_SYSTEM };

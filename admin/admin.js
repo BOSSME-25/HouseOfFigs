@@ -180,6 +180,7 @@ function initSubscriptions() {
     renderActivity();
     renderStats();
     renderFunnel();
+    renderAssessmentList(); // backfill count depends on intakes
   }, (err) => {
     console.error('intakes onSnapshot error:', err);
     showFatalError(err);
@@ -1644,6 +1645,8 @@ function clientLeakCheck(text) {
 const PLAN_STATUS_LABELS = {
   halted: ['Safety hold — review', 's-halted'],
   clearing: ['Hold cleared — drafting…', 's-draft'],
+  requested: ['Generating…', 's-draft'],
+  request_failed: ['Generation failed', 's-halted'],
   draft_failed: ['Draft failed', 's-halted'],
   leak_blocked: ['Leak blocked', 's-halted'],
   draft: ['In review', 's-draft'],
@@ -1656,6 +1659,8 @@ const PLAN_STATUS_LABELS = {
 function assessmentStatus(a) {
   if (a.status === 'halted') return 'halted';
   if (a.status === 'cleared') return 'clearing';
+  if (a.status === 'requested') return 'requested';
+  if (a.status === 'request_failed') return 'request_failed';
   const plan = planDocs[a.id];
   if (plan && plan.status === 'sent') return 'sent';
   if (plan && plan.status === 'approved') return 'approved';
@@ -1668,9 +1673,23 @@ function statusChipHtml(status) {
   return `<span class="lead-row-chip plan-chip ${cls}">${escape(label)}</span>`;
 }
 
+function unprocessedIntakes() {
+  const done = new Set(assessmentDocs.map(a => a.id));
+  return intakeDocs.filter(i => !done.has(i.id));
+}
+
 function renderAssessmentList() {
   const el = document.getElementById('assessment-list');
   if (!el) return;
+
+  // Backfill button: intakes from before the pipeline (or missed runs).
+  const backfillBtn = document.getElementById('process-earlier');
+  if (backfillBtn) {
+    const n = unprocessedIntakes().length;
+    backfillBtn.style.display = n ? '' : 'none';
+    backfillBtn.textContent = `Process earlier intakes (${n})`;
+  }
+
   if (assessmentDocs.length === 0) {
     el.innerHTML = '<p class="empty">No assessments yet — they appear when an intake is submitted.</p>';
     return;
@@ -1691,6 +1710,43 @@ function renderAssessmentList() {
   el.querySelectorAll('.cms-row').forEach(row =>
     row.addEventListener('click', () => openAssessmentDetail(row.dataset.id))
   );
+}
+
+// Backfill: create "requested" stubs; the onAssessmentRequested function
+// runs the normal pipeline for each. Nothing is sent to clients.
+const processEarlierBtn = document.getElementById('process-earlier');
+if (processEarlierBtn) {
+  processEarlierBtn.addEventListener('click', async () => {
+    const pending = unprocessedIntakes();
+    if (!pending.length) return;
+    const ok = await hofConfirm(
+      `Generate assessments for ${pending.length} earlier intake${pending.length === 1 ? '' : 's'}? Prep sheets and plan drafts are created for your review — nothing is sent to clients.`,
+      'Generate assessments'
+    );
+    if (!ok) return;
+    processEarlierBtn.disabled = true;
+    processEarlierBtn.textContent = 'Queuing…';
+    try {
+      for (const i of pending) {
+        await setDoc(doc(db, 'assessments', i.id), {
+          status: 'requested',
+          intakeId: i.id,
+          client: {
+            name: i['Full name'] || i['full-name'] || '',
+            email: (i.email || i.Email || '')
+          },
+          requestedAt: new Date().toISOString(),
+          createdAt: i.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+      }
+    } catch (err) {
+      console.error('backfill queue failed:', err);
+      alert('Queuing failed: ' + (err.message || err));
+    } finally {
+      processEarlierBtn.disabled = false;
+    }
+  });
 }
 
 function tallyTableHtml(a) {
@@ -1774,7 +1830,8 @@ function journeyLine(j) {
   const bits = [];
   if (j.consultAt) bits.push(`Consult scheduled ${formatTime(j.consultAt)}`);
   if (j.consultHeldAt) bits.push(`Consult held ${formatTime(j.consultHeldAt)}`);
-  if (j.email1SentAt) bits.push(`Handoff email sent ${formatTime(j.email1SentAt)}`);
+  if (j.email1SentAt === 'skipped-manual') bits.push('Handoff email skipped (recorded manually)');
+  else if (j.email1SentAt) bits.push(`Handoff email sent ${formatTime(j.email1SentAt)}`);
   if (j.email2SentAt) bits.push(`Nudge sent ${formatTime(j.email2SentAt)}`);
   if (j.gdReturnedAt) bits.push(`Going Deeper returned ${formatTime(j.gdReturnedAt)}`);
   if (j.email1Error) bits.push(`⚠ ${j.email1Error}`);
@@ -1816,10 +1873,11 @@ function prepSheetHtml(a) {
         <div class="editor-actions-right">
           <button type="button" class="ghost-btn" id="prep-print">Print prep sheet</button>
           <button type="button" class="ghost-btn" id="prep-save">Save prep</button>
+          ${held ? '' : '<button type="button" class="ghost-btn" id="consult-held-silent">Record consult (no email)</button>'}
           ${held ? '' : '<button type="button" class="primary-btn" id="consult-held">Mark consult held</button>'}
         </div>
       </div>
-      ${held ? '' : '<p class="aw-muted" style="margin:6px 0 0;">"Mark consult held" saves the prep sheet and sends the post-consult handoff email (goal echo, food gift, Going Deeper link, follow-up date) within a minute. The single day-3 nudge goes automatically if the form doesn\'t come back.</p>'}
+      ${held ? '' : '<p class="aw-muted" style="margin:6px 0 0;">"Mark consult held" saves the prep sheet and sends the post-consult handoff email (goal echo, food gift, Going Deeper link, follow-up date) within a minute. The single day-3 nudge goes automatically if the form doesn\'t come back. Use "Record consult (no email)" for consults that already happened — it advances the client without emailing them.</p>'}
     </div>
   </div>`;
 }
@@ -1842,7 +1900,15 @@ async function savePrepSheet(id, markHeld) {
     notes: document.getElementById('prep-notes').value.trim()
   };
 
-  if (markHeld) {
+  if (markHeld === 'silent') {
+    const ok = await hofConfirm(
+      `Record that ${a.client?.name || 'this client'}'s consult already happened? No email is sent — the client simply advances to "Awaiting Going Deeper". Send them the Going Deeper link yourself if they don't have it.`,
+      'Record consult'
+    );
+    if (!ok) return;
+    j.consultHeldAt = new Date().toISOString();
+    j.email1SentAt = 'skipped-manual'; // prevents the automated handoff email
+  } else if (markHeld) {
     if (!prepSheet.foodGift) { st.textContent = 'Add the food gift first — Email 1 quotes it.'; return; }
     if (!j.followUpAt) { st.textContent = 'Set the follow-up date first — Email 1 references it.'; return; }
     const ok = await hofConfirm(
@@ -1860,7 +1926,8 @@ async function savePrepSheet(id, markHeld) {
       journey: j,
       updatedAt: new Date().toISOString()
     }, { merge: true });
-    st.textContent = markHeld ? 'Saved — handoff email sending ✓' : 'Saved ✓';
+    st.textContent = markHeld === 'silent' ? 'Consult recorded — no email sent ✓'
+      : (markHeld ? 'Saved — handoff email sending ✓' : 'Saved ✓');
     setTimeout(() => { if (st) st.textContent = ''; }, 2500);
   } catch (err) {
     console.error('prep save failed:', err);
@@ -2000,6 +2067,8 @@ function openAssessmentDetail(id) {
   if (prepSave) prepSave.addEventListener('click', () => savePrepSheet(id, false));
   if (prepPrint) prepPrint.addEventListener('click', () => printPrepSheet(a));
   if (consultHeldBtn) consultHeldBtn.addEventListener('click', () => savePrepSheet(id, true));
+  const consultSilentBtn = document.getElementById('consult-held-silent');
+  if (consultSilentBtn) consultSilentBtn.addEventListener('click', () => savePrepSheet(id, 'silent'));
 
   const clearHoldBtn = document.getElementById('clear-hold');
   if (clearHoldBtn) clearHoldBtn.addEventListener('click', async () => {
