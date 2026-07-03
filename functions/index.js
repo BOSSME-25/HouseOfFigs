@@ -98,6 +98,59 @@ function fieldRow(label, value) {
     </div>`;
 }
 
+// Client-facing intake receipt: a short "it arrived, here's what happens
+// next" note. The plan itself is NEVER sent here — Bethany reviews results
+// with the client in real time at the first health meeting.
+function intakeReceiptHtml(firstName) {
+  const paras = [
+    'Thank you for trusting me with your story — your intake arrived safely.',
+    'Here is what happens next: I personally review everything you shared and prepare for your first health meeting. When we sit down together, we’ll walk through what your answers reveal and map out your path forward — nothing is decided without you in the room.',
+    'If you haven’t scheduled your consultation yet, you can do that below.'
+  ].map(p => `<p style="font-size:0.9375rem;color:#2C2C2C;line-height:1.7;margin:0 0 18px;">${escape(p)}</p>`).join('\n          ');
+
+  return `<!doctype html>
+<html><body style="margin:0;padding:0;background-color:#f5f0ea;font-family:'Helvetica Neue',Arial,sans-serif;color:#2C2C2C;">
+  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;opacity:0;">Your intake arrived safely — here’s what happens next.</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f0ea;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(74,55,40,0.08);">
+        <tr><td style="background:linear-gradient(135deg,#4A3728 0%,#6B4F3A 100%);padding:24px 32px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+            <td style="vertical-align:middle;">
+              <div style="font-family:Georgia,serif;font-size:1.5rem;color:#F5F0EA;font-weight:500;">House of Figs</div>
+              <div style="font-family:Georgia,serif;font-style:italic;color:rgba(245,240,234,0.7);font-size:0.875rem;margin-top:2px;">Rooted wellness. Sustainable transformation.</div>
+            </td>
+            <td align="right" style="vertical-align:middle;width:104px;">
+              <img src="https://houseoffigs.org/images/logo-light-email.png" alt="House of Figs" width="104" height="90" style="display:block;border:0;">
+            </td>
+          </tr></table>
+        </td></tr>
+        <tr><td style="padding:32px;">
+          <p style="font-size:0.9375rem;color:#2C2C2C;line-height:1.7;margin:0 0 18px;">Hi ${escape(firstName)},</p>
+          ${paras}
+          <table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0 10px;">
+            <tr><td style="border-radius:6px;background-color:#8B5E5A;">
+              <a href="${escape(BOOKING_URL)}" style="display:inline-block;padding:13px 26px;color:#ffffff;text-decoration:none;font-weight:600;font-size:0.9375rem;">Book your consultation &rarr;</a>
+            </td></tr>
+          </table>
+          <div style="margin-top:28px;padding-top:20px;border-top:1px solid #ece2cf;">
+            <p style="font-family:Georgia,serif;font-style:italic;color:#4A3728;font-size:1rem;margin:0 0 10px;">Rooted with you,</p>
+            <div style="font-family:Georgia,serif;font-size:1.05rem;color:#4A3728;font-weight:500;">Bethany Grissum</div>
+            <div style="font-size:0.8125rem;color:#897866;line-height:1.6;margin-top:3px;">Founder, House of Figs<br>
+              <span style="font-style:italic;">Rooted wellness. Sustainable transformation.</span><br>
+              <a href="https://houseoffigs.org" style="color:#8B5E5A;text-decoration:none;">houseoffigs.org</a> &middot; @hofigs</div>
+          </div>
+        </td></tr>
+        <tr><td style="padding:16px 32px 28px;border-top:1px solid #ece2cf;color:#897866;font-size:0.6875rem;line-height:1.5;">
+          You’re receiving this because you completed an intake at
+          <a href="https://houseoffigs.org" style="color:#8B5E5A;text-decoration:none;">houseoffigs.org</a>.
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+}
+
 // =========================================================================
 // INTAKE — every new submission gets a notification
 // =========================================================================
@@ -141,6 +194,32 @@ exports.onIntakeCreated = onDocumentCreated(
       subject: `New intake — ${fullName}`,
       html: html
     });
+
+    // Confirmation receipt to the client. Separate try/catch so a bad
+    // client address can never break the admin notification above.
+    if (emailAddr) {
+      try {
+        const firstName = String(preferredName || fullName || '').trim().split(/\s+/)[0] || 'there';
+        await transport.sendMail({
+          from: `Bethany Grissum, House of Figs <${FROM_ADDRESS}>`,
+          to: emailAddr,
+          replyTo: FROM_ADDRESS,
+          subject: `${firstName}, your intake is in my hands`,
+          html: intakeReceiptHtml(firstName),
+          text:
+            `Hi ${firstName},\n\n` +
+            `Thank you for trusting me with your story — your intake arrived safely.\n\n` +
+            `Here's what happens next: I personally review everything you shared and prepare for your first health meeting. When we sit down together, we'll walk through what your answers reveal and map out your path forward — nothing is decided without you in the room.\n\n` +
+            `If you haven't scheduled your consultation yet, you can do that here: ${BOOKING_URL}\n\n` +
+            `Rooted with you,\nBethany\n\n` +
+            `Bethany Grissum — Founder, House of Figs\n` +
+            `Rooted wellness. Sustainable transformation.\n` +
+            `houseoffigs.org · @hofigs`
+        });
+      } catch (err) {
+        console.error('Intake receipt email failed (admin notify already sent):', err);
+      }
+    }
   }
 );
 

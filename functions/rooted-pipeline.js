@@ -224,46 +224,85 @@ function registerRootedPipeline({ gmailPassword, makeTransport, emailShell, FROM
       }
 
       // 4. Tier 2 — draft the client plan via Claude (structured output).
-      const client = new Anthropic({ apiKey: anthropicKey.value() });
-      let draft = null;
-      let draftError = null;
-      try {
-        const response = await client.messages.create({
-          model: 'claude-opus-4-8',
-          max_tokens: 8000,
-          thinking: { type: 'adaptive' },
-          system: DRAFT_SYSTEM,
-          output_config: { format: { type: 'json_schema', schema: PLAN_SCHEMA } },
-          messages: [{ role: 'user', content: buildDraftPrompt(assessment) }]
-        });
-        if (response.stop_reason === 'refusal') {
-          draftError = 'Model declined to draft — review manually.';
-        } else {
-          const textBlock = response.content.find(b => b.type === 'text');
-          draft = JSON.parse(textBlock.text);
-        }
-      } catch (err) {
-        console.error('Plan draft failed:', err);
-        draftError = String((err && err.message) || err);
-      }
+      await draftAndStorePlan(assessment, intakeId, db);
+    }
+  );
 
-      const leakFindings = draft ? leakCheck(planText(draft)) : [];
-
-      await db.collection('plans').doc(intakeId).set({
-        intakeId,
-        clientName: assessment.client.name,
-        clientEmail: assessment.client.email,
-        // Draft status machine: draft -> ready -> approved/sent (admin-driven).
-        // leak_blocked and draft_failed require attention before "ready".
-        status: draftError ? 'draft_failed' : (leakFindings.length ? 'leak_blocked' : 'draft'),
-        draft,
-        draftError,
-        leakFindings,
-        weeksFixed: assessment.weeks,     // fixed arc, for rendering
-        pour: assessment.pour,            // colors + ingredients, for rendering
-        createdAt: now,
-        updatedAt: now
+  // Shared by onIntakeAssessment and onHoldCleared.
+  async function draftAndStorePlan(assessment, intakeId, db) {
+    const now = new Date().toISOString();
+    const client = new Anthropic({ apiKey: anthropicKey.value() });
+    let draft = null;
+    let draftError = null;
+    try {
+      const response = await client.messages.create({
+        model: 'claude-opus-4-8',
+        max_tokens: 8000,
+        thinking: { type: 'adaptive' },
+        system: DRAFT_SYSTEM,
+        output_config: { format: { type: 'json_schema', schema: PLAN_SCHEMA } },
+        messages: [{ role: 'user', content: buildDraftPrompt(assessment) }]
       });
+      if (response.stop_reason === 'refusal') {
+        draftError = 'Model declined to draft — review manually.';
+      } else {
+        const textBlock = response.content.find(b => b.type === 'text');
+        draft = JSON.parse(textBlock.text);
+      }
+    } catch (err) {
+      console.error('Plan draft failed:', err);
+      draftError = String((err && err.message) || err);
+    }
+
+    const leakFindings = draft ? leakCheck(planText(draft)) : [];
+
+    await db.collection('plans').doc(intakeId).set({
+      intakeId,
+      clientName: assessment.client.name,
+      clientEmail: assessment.client.email,
+      // Plan status machine: draft -> approved(sending) -> sent, all
+      // admin-driven. leak_blocked / draft_failed need attention first.
+      // The plan is sent during/after the first health meeting — never
+      // automatically.
+      status: draftError ? 'draft_failed' : (leakFindings.length ? 'leak_blocked' : 'draft'),
+      draft,
+      draftError,
+      leakFindings,
+      weeksFixed: assessment.weeks,     // fixed arc, for rendering
+      pour: assessment.pour,            // colors + ingredients, for rendering
+      createdAt: now,
+      updatedAt: now
+    });
+  }
+
+  // -------------------------------------------------------------------
+  // Clear a safety hold: Bethany's clinical judgment is the intended
+  // override (the brief routes hard stops to her — she resolves at the
+  // consult). When she sets a halted assessment to "cleared" in the
+  // admin, the plan drafts now and the assessment returns to "generated".
+  // -------------------------------------------------------------------
+  const onHoldCleared = onDocumentUpdated(
+    {
+      document: 'assessments/{docId}',
+      secrets: [gmailPassword, anthropicKey],
+      timeoutSeconds: 300,
+      memory: '512MiB'
+    },
+    async (event) => {
+      const before = event.data && event.data.before.data();
+      const after = event.data && event.data.after.data();
+      if (!before || !after) return;
+      if (before.status !== 'halted' || after.status !== 'cleared') return;
+
+      const db = admin.firestore();
+      const intakeId = event.params.docId;
+
+      await draftAndStorePlan(after, intakeId, db);
+      await db.collection('assessments').doc(intakeId).set({
+        status: 'generated',
+        holdClearedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
     }
   );
 
@@ -396,7 +435,7 @@ function registerRootedPipeline({ gmailPassword, makeTransport, emailShell, FROM
 </body></html>`;
   }
 
-  return { onIntakeAssessment, onPlanApproved };
+  return { onIntakeAssessment, onHoldCleared, onPlanApproved };
 }
 
 module.exports = { registerRootedPipeline, leakCheck, planText, PLAN_SCHEMA, buildDraftPrompt, DRAFT_SYSTEM };

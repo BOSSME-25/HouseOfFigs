@@ -1603,19 +1603,24 @@ function clientLeakCheck(text) {
 }
 
 const PLAN_STATUS_LABELS = {
-  halted: ['Halted — review', 's-halted'],
+  halted: ['Safety hold — review', 's-halted'],
+  clearing: ['Hold cleared — drafting…', 's-draft'],
   draft_failed: ['Draft failed', 's-halted'],
   leak_blocked: ['Leak blocked', 's-halted'],
-  draft: ['Draft — review', 's-draft'],
-  ready: ['Ready to approve', 's-ready'],
-  approved: ['Approved — sending…', 's-ready'],
-  sent: ['Sent to client', 's-sent'],
+  draft: ['In review', 's-draft'],
+  ready: ['Ready for meeting', 's-ready'],
+  approved: ['Sending plan…', 's-ready'],
+  sent: ['Plan sent', 's-sent'],
   send_failed: ['Send failed', 's-halted']
 };
 
 function assessmentStatus(a) {
   if (a.status === 'halted') return 'halted';
+  if (a.status === 'cleared') return 'clearing';
   const plan = planDocs[a.id];
+  if (plan && plan.status === 'sent') return 'sent';
+  if (plan && plan.status === 'approved') return 'approved';
+  if (a.status === 'approved') return 'ready';
   return (plan && plan.status) || 'draft';
 }
 
@@ -1720,7 +1725,14 @@ function openAssessmentDetail(id) {
   if (a.status === 'halted') {
     html += '<div class="halt-banner"><strong>Pipeline halted — nothing client-facing was generated.</strong>' +
       (a.haltReasons || []).map(r => `<div>• ${escape(r)}</div>`).join('') +
-      '<div class="aw-muted" style="margin-top:6px;">Resolve at consult; the brief\'s rule: the outcome is a referral or a conversation, never a restrictive plan.</div></div>';
+      '<div class="aw-muted" style="margin-top:6px;">The safety rule: the outcome is a referral or a conversation, never a restrictive plan. If your clinical judgment says it\'s safe to proceed (e.g. resolved at the consult), you can clear the hold below — the plan will draft for your review.</div>' +
+      '<div style="margin-top:10px;"><button type="button" class="ghost-btn" id="clear-hold">Clear hold &amp; draft plan</button> <span class="lead-save-status" id="hold-status"></span></div></div>';
+  }
+  if (a.status === 'cleared') {
+    html += '<div class="aw-client">Hold cleared — the plan is drafting now. It appears here in about a minute.</div>';
+  }
+  if (a.status === 'approved') {
+    html += `<div class="aw-client" style="border-color:#c9d6c0;background:#f4f8f1;">✓ Assessment approved${a.approvedAt ? ' ' + formatTime(a.approvedAt) : ''} — <strong>ready for the first health meeting</strong>. Send the plan below during or after the meeting.</div>`;
   }
 
   html += `<div class="aw-client">
@@ -1764,10 +1776,11 @@ function openAssessmentDetail(id) {
       <div class="editor-actions-left"><span class="lead-save-status" id="plan-save-status"></span></div>
       <div class="editor-actions-right">
         <button type="button" class="ghost-btn" id="plan-save">Save draft</button>
-        <button type="button" class="primary-btn" id="plan-approve">Approve &amp; send to client</button>
+        ${a.status !== 'approved' ? '<button type="button" class="primary-btn" id="assessment-approve">Approve assessment — ready for meeting</button>' : ''}
+        <button type="button" class="${a.status === 'approved' ? 'primary-btn' : 'ghost-btn'}" id="plan-approve">Send plan to client</button>
       </div>
     </div>
-    <p class="aw-muted" style="margin-top:8px;">Approving emails the plan to ${escape(plan.clientEmail || 'the client')}. The leak check runs once more at send time.</p>`;
+    <p class="aw-muted" style="margin-top:8px;">Approving the assessment marks ${escape(a.client?.preferredName || a.client?.name || 'this client')} as ready for their first health meeting — nothing is emailed. "Send plan" emails the 30-day plan to ${escape(plan.clientEmail || 'the client')}; use it during or after the meeting. The leak check runs once more at send time.</p>`;
     html += '</div>';
   }
 
@@ -1781,6 +1794,38 @@ function openAssessmentDetail(id) {
   if (approveBtn) approveBtn.addEventListener('click', () => savePlanDraft(id, true));
   const printBtn = document.getElementById('aw-print');
   if (printBtn) printBtn.addEventListener('click', () => printWorksheet(a));
+
+  const clearHoldBtn = document.getElementById('clear-hold');
+  if (clearHoldBtn) clearHoldBtn.addEventListener('click', async () => {
+    if (!confirm('Clear this safety hold? Only do this if your clinical judgment says it\'s safe to proceed. The plan will draft for your review — nothing is sent to the client.')) return;
+    const st = document.getElementById('hold-status');
+    st.textContent = 'Clearing…';
+    try {
+      await setDoc(doc(db, 'assessments', id), { status: 'cleared', updatedAt: new Date().toISOString() }, { merge: true });
+      st.textContent = 'Cleared — drafting the plan now (about a minute).';
+    } catch (err) {
+      console.error('clear hold failed:', err);
+      st.textContent = 'Failed: ' + (err.message || err);
+    }
+  });
+
+  const assessApproveBtn = document.getElementById('assessment-approve');
+  if (assessApproveBtn) assessApproveBtn.addEventListener('click', async () => {
+    const st = document.getElementById('plan-save-status');
+    st.textContent = 'Approving…';
+    try {
+      await setDoc(doc(db, 'assessments', id), {
+        status: 'approved',
+        approvedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+      st.textContent = 'Approved — ready for the first health meeting ✓';
+      setTimeout(() => { if (st) st.textContent = ''; }, 2500);
+    } catch (err) {
+      console.error('assessment approve failed:', err);
+      st.textContent = 'Failed: ' + (err.message || err);
+    }
+  });
 }
 
 // Print the practitioner worksheet (internal clinical file) — same pattern
@@ -1855,9 +1900,10 @@ function collectPlanDraft(existing) {
 // ===================================================================
 const FUNNEL_STAGES = [
   { key: 'quiz', label: 'Quiz leads', hint: 'Took the quiz, no intake yet' },
-  { key: 'review', label: 'In review', hint: 'Intake in — assessment/plan awaiting Bethany' },
-  { key: 'halted', label: 'Safety hold', hint: 'Pipeline halted — needs Bethany before anything sends' },
-  { key: 'sent', label: 'Plan sent', hint: '30-day plan delivered' }
+  { key: 'review', label: 'In review', hint: 'Intake in — assessment awaiting Bethany\'s approval' },
+  { key: 'ready', label: 'Ready for meeting', hint: 'Assessment approved — first health meeting next' },
+  { key: 'sent', label: 'Plan sent', hint: '30-day plan delivered' },
+  { key: 'halted', label: 'Safety hold', hint: 'Halted — needs Bethany before anything proceeds' }
 ];
 
 function emailOf(d) {
@@ -1865,7 +1911,7 @@ function emailOf(d) {
 }
 
 function computeFunnel() {
-  const stages = { quiz: [], review: [], halted: [], sent: [] };
+  const stages = { quiz: [], review: [], ready: [], halted: [], sent: [] };
   const intakeEmails = new Set(intakeDocs.map(emailOf).filter(Boolean));
 
   // Quiz leads who haven't submitted an intake yet (dedupe by email).
@@ -1892,6 +1938,7 @@ function computeFunnel() {
     };
     if (a && a.status === 'halted') stages.halted.push(person);
     else if (plan && plan.status === 'sent') stages.sent.push(person);
+    else if (a && a.status === 'approved') stages.ready.push(person);
     else stages.review.push(person);
   }
   return stages;
@@ -1906,7 +1953,7 @@ function renderFunnel() {
       <div class="funnel-count">${stages[s.key].length}</div>
       <div class="funnel-label">${s.label}</div>
       <div class="funnel-hint">${s.hint}</div>
-      ${idx < FUNNEL_STAGES.length - 1 ? '<span class="funnel-arrow" aria-hidden="true">&rarr;</span>' : ''}
+      ${idx < 3 ? '<span class="funnel-arrow" aria-hidden="true">&rarr;</span>' : ''}
     </button>`).join('');
   el.querySelectorAll('.funnel-card').forEach(card =>
     card.addEventListener('click', () => openFunnelStage(card.dataset.stage))
