@@ -1508,6 +1508,9 @@
           payload.createdAt = new Date().toISOString();
           payload.userAgent = (navigator.userAgent || '').slice(0, 500);
           payload.referer = (document.referrer || '').slice(0, 500);
+          // Form-source flag (Client Journey briefing): web submissions
+          // score as a full intake; only paper Quick-Start uses soft-leans.
+          payload['Form source'] = 'web';
 
           await whenFirebaseReady();
           await window.hofFirebase.addIntake(payload);

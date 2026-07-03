@@ -1623,7 +1623,11 @@ const LEAK_TERMS = [
   'insulin resistance', 'estrogen dominance', 'HPA-axis', 'HPA axis',
   'dysregulation', 'cardiometabolic', 'microbiome', 'dysbiosis',
   'adrenal', 'cortisol', 'functional range', 'optimal range', 'referral',
-  'disordered eating', 'SCOFF', 'diagnosis', 'clinical'
+  'disordered eating', 'SCOFF', 'diagnosis', 'clinical',
+  // Gate C additions (Client Journey briefing): no calorie/macro targets
+  // or appearance-based goal language in client-facing output.
+  'calorie', 'calories', 'macro', 'macros', 'kcal', 'BMI',
+  'weight target', 'goal weight', 'pounds to lose'
 ];
 
 function clientLeakCheck(text) {

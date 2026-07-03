@@ -189,8 +189,13 @@ function registerRootedPipeline({ gmailPassword, makeTransport, emailShell, FROM
       const db = admin.firestore();
       const now = new Date().toISOString();
 
-      // 1–2. Engine (safety screen runs first inside it).
-      const assessment = runAssessment(intake, { formType: 'full' });
+      // 1–2. Engine (safety screen runs first inside it). Form-source aware
+      // per the Client Journey briefing: web submissions carry the full
+      // symptom lists and score as a full intake; only paper Quick-Start
+      // entries (keyed in manually with Form source = 'paper-quickstart')
+      // use the 2-of-4 soft-lean rule.
+      const formType = intake['Form source'] === 'paper-quickstart' ? 'quickstart' : 'full';
+      const assessment = runAssessment(intake, { formType });
 
       // 3. Tier 1 — store the practitioner-side assessment. Idempotent:
       //    keyed by intake id, so re-runs overwrite rather than duplicate.
