@@ -923,3 +923,60 @@ html, body {
   border-radius: 10px;
   padding: 1rem 1.1rem;
 }
+
+/* Client journey funnel */
+.funnel-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+.funnel-card {
+  position: relative;
+  text-align: left;
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 1rem 1.1rem;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.15s;
+}
+.funnel-card:hover {
+  border-color: var(--color-olive-leaf);
+  box-shadow: 0 2px 10px rgba(74, 55, 40, 0.08);
+}
+.funnel-card--alert { border-color: #d8a49c; background-color: #fdf7f5; }
+.funnel-card--alert .funnel-count { color: #a84b42; }
+.funnel-count {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--color-deep-fig);
+  line-height: 1.1;
+}
+.funnel-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-dark);
+  margin-top: 0.15rem;
+}
+.funnel-hint {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  margin-top: 0.2rem;
+  line-height: 1.4;
+}
+.funnel-arrow {
+  position: absolute;
+  right: -0.72rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-warm-sand);
+  font-size: 1rem;
+  z-index: 1;
+}
+@media (max-width: 760px) {
+  .funnel-grid { grid-template-columns: repeat(2, 1fr); }
+  .funnel-arrow { display: none; }
+}

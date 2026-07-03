@@ -162,6 +162,7 @@ function initSubscriptions() {
     renderQuizList();
     renderActivity();
     renderStats();
+    renderFunnel();
   }, (err) => {
     console.error('quizzes onSnapshot error:', err);
     showFatalError(err);
@@ -178,6 +179,7 @@ function initSubscriptions() {
     renderIntakeList();
     renderActivity();
     renderStats();
+    renderFunnel();
   }, (err) => {
     console.error('intakes onSnapshot error:', err);
     showFatalError(err);
@@ -210,12 +212,14 @@ function initSubscriptions() {
     assessmentDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderAssessmentList();
     setText('badge-assessments', assessmentDocs.length);
+    renderFunnel();
   }, (err) => console.error('assessments onSnapshot error:', err));
 
   onSnapshot(collection(db, 'plans'), (snap) => {
     planDocs = {};
     snap.docs.forEach(d => { planDocs[d.id] = { id: d.id, ...d.data() }; });
     renderAssessmentList();
+    renderFunnel();
   }, (err) => console.error('plans onSnapshot error:', err));
 }
 
@@ -1841,6 +1845,101 @@ function collectPlanDraft(existing) {
     if (d.weeks && d.weeks[i]) d.weeks[i].tailoring = el.value.trim();
   });
   return d;
+}
+
+// ===================================================================
+// Client journey funnel (Overview tab)
+// Each person appears once, at the FURTHEST stage they've reached.
+// Click a stage card to see exactly who is in it; click a person to
+// open their full detail.
+// ===================================================================
+const FUNNEL_STAGES = [
+  { key: 'quiz', label: 'Quiz leads', hint: 'Took the quiz, no intake yet' },
+  { key: 'review', label: 'In review', hint: 'Intake in — assessment/plan awaiting Bethany' },
+  { key: 'halted', label: 'Safety hold', hint: 'Pipeline halted — needs Bethany before anything sends' },
+  { key: 'sent', label: 'Plan sent', hint: '30-day plan delivered' }
+];
+
+function emailOf(d) {
+  return String(d.email || d.Email || '').toLowerCase().trim();
+}
+
+function computeFunnel() {
+  const stages = { quiz: [], review: [], halted: [], sent: [] };
+  const intakeEmails = new Set(intakeDocs.map(emailOf).filter(Boolean));
+
+  // Quiz leads who haven't submitted an intake yet (dedupe by email).
+  const seenQuiz = new Set();
+  for (const q of quizDocs) {
+    const em = emailOf(q);
+    if (!em || intakeEmails.has(em) || seenQuiz.has(em)) continue;
+    seenQuiz.add(em);
+    stages.quiz.push({
+      name: q.name || em, email: em, when: q.emailCapturedAt || q.createdAt,
+      open: () => openDetail('quiz', q.id)
+    });
+  }
+
+  // Intakes, bucketed by their assessment/plan state.
+  for (const i of intakeDocs) {
+    const a = assessmentDocs.find(x => x.id === i.id);
+    const plan = planDocs[i.id];
+    const person = {
+      name: i['Full name'] || i['full-name'] || emailOf(i) || 'Unnamed',
+      email: emailOf(i),
+      when: i.createdAt,
+      open: a ? () => openAssessmentDetail(i.id) : () => openDetail('intake', i.id)
+    };
+    if (a && a.status === 'halted') stages.halted.push(person);
+    else if (plan && plan.status === 'sent') stages.sent.push(person);
+    else stages.review.push(person);
+  }
+  return stages;
+}
+
+function renderFunnel() {
+  const el = document.getElementById('funnel');
+  if (!el) return;
+  const stages = computeFunnel();
+  el.innerHTML = FUNNEL_STAGES.map((s, idx) => `
+    <button type="button" class="funnel-card${s.key === 'halted' && stages.halted.length ? ' funnel-card--alert' : ''}" data-stage="${s.key}">
+      <div class="funnel-count">${stages[s.key].length}</div>
+      <div class="funnel-label">${s.label}</div>
+      <div class="funnel-hint">${s.hint}</div>
+      ${idx < FUNNEL_STAGES.length - 1 ? '<span class="funnel-arrow" aria-hidden="true">&rarr;</span>' : ''}
+    </button>`).join('');
+  el.querySelectorAll('.funnel-card').forEach(card =>
+    card.addEventListener('click', () => openFunnelStage(card.dataset.stage))
+  );
+}
+
+function openFunnelStage(key) {
+  const stage = FUNNEL_STAGES.find(s => s.key === key);
+  const people = computeFunnel()[key] || [];
+  let html = `<h2>${escape(stage.label)}</h2>
+    <div class="detail-meta">${people.length} ${people.length === 1 ? 'person' : 'people'} &middot; ${escape(stage.hint)}</div>`;
+  if (!people.length) {
+    html += '<p class="empty">No one in this stage right now.</p>';
+  } else {
+    html += '<div class="data-list" style="margin-top:0.75rem;">' + people
+      .sort((a, b) => (b.when || '').localeCompare(a.when || ''))
+      .map((p, i) => `
+        <div class="data-row funnel-person" data-idx="${i}">
+          <div class="row-main">
+            <div class="row-title">${escape(p.name)}</div>
+            <div class="row-sub">${escape(p.email || '')}</div>
+          </div>
+          <div class="row-time">${formatTime(p.when)}</div>
+        </div>`).join('') + '</div>';
+  }
+  modalBodyEl.innerHTML = html;
+  modalEl.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+
+  const sorted = people.sort((a, b) => (b.when || '').localeCompare(a.when || ''));
+  modalBodyEl.querySelectorAll('.funnel-person').forEach(row =>
+    row.addEventListener('click', () => sorted[+row.dataset.idx].open())
+  );
 }
 
 async function savePlanDraft(id, approve) {
