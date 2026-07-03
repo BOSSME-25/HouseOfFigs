@@ -69,6 +69,8 @@ let quizDocs = [];
 let intakeDocs = [];
 let postDocs = [];
 let testimonialDocs = [];
+let assessmentDocs = [];
+let planDocs = {};            // intakeId -> plan doc
 let leadMeta = {};          // submissionId ("quiz_x"/"intake_x") -> { status, notes, tags }
 let lastSeenIds = new Set(); // for "new" highlighting on first load
 let firstSnapshot = { quizzes: true, intakes: true };
@@ -202,6 +204,19 @@ function initSubscriptions() {
     renderQuizList();
     renderIntakeList();
   }, (err) => console.error('leadMeta onSnapshot error:', err));
+
+  // Rooted Assessments + plans
+  onSnapshot(query(collection(db, 'assessments'), orderBy('createdAt', 'desc')), (snap) => {
+    assessmentDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderAssessmentList();
+    setText('badge-assessments', assessmentDocs.length);
+  }, (err) => console.error('assessments onSnapshot error:', err));
+
+  onSnapshot(collection(db, 'plans'), (snap) => {
+    planDocs = {};
+    snap.docs.forEach(d => { planDocs[d.id] = { id: d.id, ...d.data() }; });
+    renderAssessmentList();
+  }, (err) => console.error('plans onSnapshot error:', err));
 }
 
 function handleNewItems(kind, docs) {
@@ -1552,4 +1567,316 @@ function leadChip(type, id) {
   if (!status || status === 'New') return '';
   const cls = 's-' + status.toLowerCase();
   return `<span class="lead-row-chip ${cls}">${escape(status)}</span>`;
+}
+
+// ===================================================================
+// Rooted Assessments — review workspace
+// ===================================================================
+
+// Two-audience leak terms. KEEP IN SYNC with functions/rooted-data.js
+// (LEAK_TERMS) — the Cloud Function re-checks on send, so this client copy
+// is a convenience, not the security boundary.
+const LEAK_TERMS = [
+  'CBC', 'ferritin', 'TIBC', 'HbA1c', 'A1c', 'hs-CRP', 'CRP', 'TSH', 'ApoB',
+  'Lp(a)', 'ALT', 'AST', 'DUTCH', 'estradiol', 'progesterone', 'FSH',
+  'RBC magnesium', 'iron panel', 'lab panel', 'bloodwork panel', 'thyroid panel',
+  'hormone panel', 'fasting glucose',
+  'supplement', 'mg ', ' mcg', ' IU', 'dose', 'dosage', 'capsule',
+  'insulin resistance', 'estrogen dominance', 'HPA-axis', 'HPA axis',
+  'dysregulation', 'cardiometabolic', 'microbiome', 'dysbiosis',
+  'adrenal', 'cortisol', 'functional range', 'optimal range', 'referral',
+  'disordered eating', 'SCOFF', 'diagnosis', 'clinical'
+];
+
+function clientLeakCheck(text) {
+  const findings = [];
+  for (const term of LEAK_TERMS) {
+    const escaped = term.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(`(^|[^A-Za-z])${escaped}($|[^A-Za-z])`, 'i');
+    if (re.test(text)) findings.push(term.trim());
+  }
+  return findings;
+}
+
+const PLAN_STATUS_LABELS = {
+  halted: ['Halted — review', 's-halted'],
+  draft_failed: ['Draft failed', 's-halted'],
+  leak_blocked: ['Leak blocked', 's-halted'],
+  draft: ['Draft — review', 's-draft'],
+  ready: ['Ready to approve', 's-ready'],
+  approved: ['Approved — sending…', 's-ready'],
+  sent: ['Sent to client', 's-sent'],
+  send_failed: ['Send failed', 's-halted']
+};
+
+function assessmentStatus(a) {
+  if (a.status === 'halted') return 'halted';
+  const plan = planDocs[a.id];
+  return (plan && plan.status) || 'draft';
+}
+
+function statusChipHtml(status) {
+  const [label, cls] = PLAN_STATUS_LABELS[status] || [status, 's-draft'];
+  return `<span class="lead-row-chip plan-chip ${cls}">${escape(label)}</span>`;
+}
+
+function renderAssessmentList() {
+  const el = document.getElementById('assessment-list');
+  if (!el) return;
+  if (assessmentDocs.length === 0) {
+    el.innerHTML = '<p class="empty">No assessments yet — they appear when an intake is submitted.</p>';
+    return;
+  }
+  el.innerHTML = assessmentDocs.map(a => {
+    const status = assessmentStatus(a);
+    const who = a.client?.name || a.client?.email || 'Unnamed';
+    const priorities = (a.priorities || []).map(p => p.label).join(' · ');
+    return `
+      <div class="data-row cms-row" data-id="${escape(a.id)}">
+        <div class="row-main">
+          <div class="row-title">${escape(who)} ${statusChipHtml(status)}</div>
+          <div class="row-sub">${escape(priorities || '—')}</div>
+        </div>
+        <div class="row-time">${formatTime(a.createdAt)}</div>
+      </div>`;
+  }).join('');
+  el.querySelectorAll('.cms-row').forEach(row =>
+    row.addEventListener('click', () => openAssessmentDetail(row.dataset.id))
+  );
+}
+
+function tallyTableHtml(a) {
+  const rows = Object.values(a.tally || {}).map(t => `
+    <tr>
+      <td>${escape(t.label)}</td>
+      <td style="text-align:center;">${t.checked}</td>
+      <td style="text-align:center;">${t.tier || '—'}</td>
+      <td>${t.flag ? '✓ flag' : (t.lean ? 'lean' : '—')}${t.anchored ? ' · anchored' : ''}${t.selfId ? ' · self-ID' : ''}</td>
+    </tr>`).join('');
+  return `<table class="aw-table">
+    <thead><tr><th>Color</th><th>#</th><th>Tier</th><th>Signal</th></tr></thead>
+    <tbody>${rows}</tbody></table>`;
+}
+
+function worksheetHtml(a) {
+  let html = '<div class="aw-section"><h3>Rainbow cluster tally</h3>' + tallyTableHtml(a) + '</div>';
+
+  if ((a.patterns || []).length) {
+    html += '<div class="aw-section"><h3>Pattern candidates</h3>' + a.patterns.map(p =>
+      `<div class="aw-item"><strong>${escape(p.name)}</strong> <em>(${escape(p.strength)}, score ${p.score})</em><br>
+       <span class="aw-muted">${escape(p.whereToBegin)}</span><br>
+       <span class="aw-evidence">${p.evidence.map(escape).join(' · ')}</span></div>`
+    ).join('') + '</div>';
+  }
+
+  html += '<div class="aw-section"><h3>Priorities</h3>' + (a.priorities || []).map((p, i) =>
+    `<div class="aw-item">${i + 1}. <strong>${escape(p.label)}</strong> — <span class="aw-muted">${escape(p.why)}</span></div>`
+  ).join('') + (a.sequencingRules || []).map(r => `<div class="aw-muted" style="margin-top:4px;">↳ ${escape(r)}</div>`).join('') + '</div>';
+
+  html += `<div class="aw-section"><h3>Pour</h3>
+    <div class="aw-item">${(a.pour?.colors || []).map(c => escape(c)).join(' · ') || '—'}</div>
+    ${Object.entries(a.pour?.ingredients || {}).map(([c, ing]) => `<div class="aw-muted">${escape(c)}: ${escape(ing)}</div>`).join('')}
+    ${(a.pour?.notes || []).map(n => `<div class="aw-evidence">• ${escape(n)}</div>`).join('')}</div>`;
+
+  html += '<div class="aw-section"><h3>Four-week arc</h3>' + (a.weeks || []).map(w =>
+    `<div class="aw-item"><strong>Week ${w.week} · ${escape(w.name)}</strong> — ${escape(w.colors.join(' + '))}<br><span class="aw-muted">${escape(w.focus)}</span></div>`
+  ).join('') + '</div>';
+
+  if (a.labs) {
+    html += `<div class="aw-section"><h3>Labs guidance (practitioner-side only)</h3>
+      <div class="aw-muted">${escape(a.labs.note || '')}</div>
+      ${a.labs.recommendPrimary?.length ? `<div class="aw-item">Recommend primary panel: ${a.labs.recommendPrimary.map(escape).join(', ')}</div>` : ''}
+      ${a.labs.referFullPanel?.length ? `<div class="aw-item">Refer for full panel: ${a.labs.referFullPanel.map(escape).join(', ')}</div>` : ''}</div>`;
+  }
+
+  if ((a.conditionAdjustments || []).length) {
+    html += '<div class="aw-section"><h3>Condition adjustments</h3>' +
+      a.conditionAdjustments.map(x => `<div class="aw-item">• ${escape(x.note)}</div>`).join('') + '</div>';
+  }
+  return html;
+}
+
+const PLAN_FIELD_DEFS = [
+  { key: 'welcomeNote', label: 'Welcome note', rows: 5 },
+  { key: 'pourDescription', label: 'Pour description', rows: 3 },
+  { key: 'closingReframe', label: 'Closing reframe (Week Four)', rows: 4 }
+];
+
+function openAssessmentDetail(id) {
+  const a = assessmentDocs.find(x => x.id === id);
+  if (!a) return;
+  const plan = planDocs[id];
+  const status = assessmentStatus(a);
+
+  let html = `<h2>Rooted Assessment — ${escape(a.client?.name || 'Unnamed')}</h2>`;
+  html += `<div class="detail-meta">${statusChipHtml(status)} &middot; Intake ${formatTime(a.createdAt)}`;
+  if (a.client?.email) html += ` &middot; ${escape(a.client.email)}`;
+  html += ' &middot; <a href="#" id="aw-print" onclick="return false;">Print worksheet</a></div>';
+
+  if (a.status === 'halted') {
+    html += '<div class="halt-banner"><strong>Pipeline halted — nothing client-facing was generated.</strong>' +
+      (a.haltReasons || []).map(r => `<div>• ${escape(r)}</div>`).join('') +
+      '<div class="aw-muted" style="margin-top:6px;">Resolve at consult; the brief\'s rule: the outcome is a referral or a conversation, never a restrictive plan.</div></div>';
+  }
+
+  html += `<div class="aw-client">
+    <div><strong>Chief complaint:</strong> ${escape(a.client?.chiefComplaint || '—')}</div>
+    <div><strong>Goals:</strong> ${escape(a.client?.goals || '—')}</div>
+    <div><strong>Named fear:</strong> ${escape(a.client?.fears || '—')}</div>
+  </div>`;
+
+  html += worksheetHtml(a);
+
+  // Plan editor (only when not halted)
+  if (a.status !== 'halted' && plan) {
+    html += '<div class="aw-section aw-plan"><h3>Client plan draft (Tier 2 — approval required)</h3>';
+    if (plan.draftError) {
+      html += `<div class="halt-banner">Draft generation failed: ${escape(plan.draftError)}<br>
+        <span class="aw-muted">Fix the issue (e.g. API key) and resubmit, or write the plan manually below.</span></div>`;
+    }
+    if ((plan.leakFindings || []).length) {
+      html += `<div class="halt-banner">Two-audience leak check flagged: <strong>${plan.leakFindings.map(escape).join(', ')}</strong> — edit these out before approving.</div>`;
+    }
+    const d = plan.draft || {};
+    html += '<div class="editor-form" id="plan-editor">';
+    for (const f of PLAN_FIELD_DEFS) {
+      html += `<label>${f.label}<textarea data-plan-field="${f.key}" rows="${f.rows}">${escape(d[f.key] || '')}</textarea></label>`;
+    }
+    (d.rainbowRead || []).forEach((r, i) => {
+      html += `<label>Rainbow Read — ${escape(r.color)}
+        <input type="text" data-plan-rr-heading="${i}" value="${escape(r.heading)}" style="margin-bottom:4px;">
+        <textarea data-plan-rr-para="${i}" rows="3">${escape(r.paragraph)}</textarea></label>`;
+    });
+    (d.weeks || []).forEach((w, i) => {
+      html += `<label>Week ${w.week} — emphasis &amp; tailoring
+        <input type="text" data-plan-wk-emphasis="${i}" value="${escape(w.emphasis)}" style="margin-bottom:4px;">
+        <textarea data-plan-wk-tailoring="${i}" rows="2">${escape(w.tailoring)}</textarea></label>`;
+    });
+    html += `<label>Small Harvests (one per line)<textarea data-plan-field="smallHarvests" rows="4">${escape((d.smallHarvests || []).join('\n'))}</textarea></label>`;
+    html += `<label>Gentle notes (one per line)<textarea data-plan-field="gentleNotes" rows="4">${escape((d.gentleNotes || []).join('\n'))}</textarea></label>`;
+    html += '</div>';
+
+    html += `<div class="editor-actions" style="margin-top:1rem;">
+      <div class="editor-actions-left"><span class="lead-save-status" id="plan-save-status"></span></div>
+      <div class="editor-actions-right">
+        <button type="button" class="ghost-btn" id="plan-save">Save draft</button>
+        <button type="button" class="primary-btn" id="plan-approve">Approve &amp; send to client</button>
+      </div>
+    </div>
+    <p class="aw-muted" style="margin-top:8px;">Approving emails the plan to ${escape(plan.clientEmail || 'the client')}. The leak check runs once more at send time.</p>`;
+    html += '</div>';
+  }
+
+  modalBodyEl.innerHTML = html;
+  modalEl.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+
+  const saveBtn = document.getElementById('plan-save');
+  const approveBtn = document.getElementById('plan-approve');
+  if (saveBtn) saveBtn.addEventListener('click', () => savePlanDraft(id, false));
+  if (approveBtn) approveBtn.addEventListener('click', () => savePlanDraft(id, true));
+  const printBtn = document.getElementById('aw-print');
+  if (printBtn) printBtn.addEventListener('click', () => printWorksheet(a));
+}
+
+// Print the practitioner worksheet (internal clinical file) — same pattern
+// as the existing quiz/intake print views: new tab + auto print dialog.
+function printWorksheet(a) {
+  const w = window.open('', '_blank');
+  if (!w) return;
+  w.document.write(`<!doctype html><html><head><title>Rooted Assessment — ${escape(a.client?.name || '')}</title>
+  <style>
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #2C2C2C; max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+    .conf { font-size: 0.6875rem; letter-spacing: 0.06em; text-transform: uppercase; color: #a84b42; margin-bottom: 0.5rem; }
+    h1 { font-family: Georgia, serif; color: #4A3728; font-size: 1.5rem; margin: 0 0 0.25rem; }
+    h3 { font-family: Georgia, serif; color: #4A3728; border-bottom: 1px solid #ece2cf; padding-bottom: 4px; }
+    .aw-item { font-size: 0.875rem; line-height: 1.55; margin-bottom: 6px; }
+    .aw-muted { font-size: 0.8125rem; color: #897866; }
+    .aw-evidence { font-size: 0.75rem; color: #a29483; }
+    .aw-client { background: #f5f0ea; border-radius: 8px; padding: 12px 14px; font-size: 0.875rem; line-height: 1.6; margin: 12px 0; }
+    .aw-table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
+    .aw-table th { text-align: left; font-size: 0.6875rem; text-transform: uppercase; color: #6B7F5E; padding: 4px 6px; border-bottom: 1px solid #ece2cf; }
+    .aw-table td { padding: 4px 6px; border-bottom: 1px solid #f2ebdf; }
+    .halt-banner { background: #faf0ee; border: 1px solid #e5c4bd; border-radius: 8px; padding: 10px 12px; font-size: 0.875rem; color: #7c3a32; margin: 12px 0; }
+  </style></head><body>
+  <div class="conf">House of Figs · Confidential clinical file — internal use only</div>
+  <h1>Per-Client Assessment Worksheet</h1>
+  <div class="aw-muted">${escape(a.client?.name || 'Unnamed')}${a.client?.age ? ' · ' + escape(a.client.age) : ''}${a.client?.location ? ' · ' + escape(a.client.location) : ''} · Intake ${escape(a.createdAt || '')}</div>
+  ${a.status === 'halted' ? '<div class="halt-banner"><strong>HALTED:</strong> ' + (a.haltReasons || []).map(escape).join(' · ') + '</div>' : ''}
+  <div class="aw-client">
+    <div><strong>Chief complaint:</strong> ${escape(a.client?.chiefComplaint || '—')}</div>
+    <div><strong>Goals:</strong> ${escape(a.client?.goals || '—')}</div>
+    <div><strong>Named fear:</strong> ${escape(a.client?.fears || '—')}</div>
+  </div>
+  ${worksheetHtml(a)}
+  <script>window.addEventListener('load', function () { setTimeout(function () { window.print(); }, 300); });<\/script>
+  </body></html>`);
+  w.document.close();
+}
+
+function collectPlanDraft(existing) {
+  const d = JSON.parse(JSON.stringify(existing.draft || {}));
+  document.querySelectorAll('[data-plan-field]').forEach(el => {
+    const key = el.dataset.planField;
+    if (key === 'smallHarvests' || key === 'gentleNotes') {
+      d[key] = el.value.split('\n').map(s => s.trim()).filter(Boolean);
+    } else {
+      d[key] = el.value.trim();
+    }
+  });
+  document.querySelectorAll('[data-plan-rr-heading]').forEach(el => {
+    const i = +el.dataset.planRrHeading;
+    if (d.rainbowRead && d.rainbowRead[i]) d.rainbowRead[i].heading = el.value.trim();
+  });
+  document.querySelectorAll('[data-plan-rr-para]').forEach(el => {
+    const i = +el.dataset.planRrPara;
+    if (d.rainbowRead && d.rainbowRead[i]) d.rainbowRead[i].paragraph = el.value.trim();
+  });
+  document.querySelectorAll('[data-plan-wk-emphasis]').forEach(el => {
+    const i = +el.dataset.planWkEmphasis;
+    if (d.weeks && d.weeks[i]) d.weeks[i].emphasis = el.value.trim();
+  });
+  document.querySelectorAll('[data-plan-wk-tailoring]').forEach(el => {
+    const i = +el.dataset.planWkTailoring;
+    if (d.weeks && d.weeks[i]) d.weeks[i].tailoring = el.value.trim();
+  });
+  return d;
+}
+
+async function savePlanDraft(id, approve) {
+  const plan = planDocs[id];
+  if (!plan) return;
+  const statusEl = document.getElementById('plan-save-status');
+  const draft = collectPlanDraft(plan);
+
+  // Client-side leak check (the function re-checks at send).
+  const allText = [
+    draft.welcomeNote, draft.pourDescription, draft.closingReframe,
+    ...(draft.rainbowRead || []).map(r => r.heading + ' ' + r.paragraph),
+    ...(draft.weeks || []).map(w => w.emphasis + ' ' + w.tailoring),
+    ...(draft.smallHarvests || []),
+    ...(draft.gentleNotes || [])
+  ].filter(Boolean).join('\n');
+  const leaks = clientLeakCheck(allText);
+
+  if (approve && leaks.length) {
+    statusEl.textContent = 'Blocked — clinical terms present: ' + leaks.join(', ');
+    return;
+  }
+  if (approve && !confirm(`Send this plan to ${plan.clientEmail}? This emails the client.`)) return;
+
+  statusEl.textContent = approve ? 'Approving…' : 'Saving…';
+  try {
+    await setDoc(doc(db, 'plans', id), {
+      draft,
+      leakFindings: leaks,
+      status: approve ? 'approved' : (leaks.length ? 'leak_blocked' : 'draft'),
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+    statusEl.textContent = approve ? 'Approved — sending to client ✓' : 'Saved ✓';
+    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2500);
+  } catch (err) {
+    console.error('plan save failed:', err);
+    statusEl.textContent = 'Save failed: ' + (err.message || err);
+  }
 }

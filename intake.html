@@ -376,6 +376,9 @@
       gap: 0.5rem;
       margin-top: 0.5rem;
     }
+    .check-group--inline {
+      grid-template-columns: repeat(2, minmax(90px, 140px));
+    }
     .check-group label {
       display: flex;
       align-items: flex-start;
@@ -825,6 +828,71 @@
           <textarea id="family" name="Family health patterns"></textarea>
         </div>
 
+        <h3 style="font-family:'Cormorant Garamond',serif;font-size:1.125rem;color:#4A3728;margin:1.5rem 0 0.5rem;">A few questions we ask everyone</h3>
+        <p class="section-sub" style="margin-bottom:1rem;">These help us care for you safely. There are no wrong answers, and nothing here is judged &mdash; it simply shapes how we walk with you.</p>
+
+        <div class="field">
+          <label class="field-label">Are you currently pregnant, or could you be?</label>
+          <div class="check-group">
+            <label><input type="radio" name="Pregnancy status" value="No" required> No</label>
+            <label><input type="radio" name="Pregnancy status" value="Yes"> Yes</label>
+            <label><input type="radio" name="Pregnancy status" value="Possibly / trying"> Possibly / trying</label>
+            <label><input type="radio" name="Pregnancy status" value="Not applicable"> Not applicable</label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">Are you currently experiencing any of the following? <span style="color:#897866;font-weight:400;font-style:italic;">(Check any that apply &mdash; leave blank if none.)</span></label>
+          <div class="check-group">
+            <label><input type="checkbox" name="Red flag symptoms" value="Chest pain or pressure"> Chest pain or pressure</label>
+            <label><input type="checkbox" name="Red flag symptoms" value="Shortness of breath at rest"> Shortness of breath at rest</label>
+            <label><input type="checkbox" name="Red flag symptoms" value="Fainting or near-fainting"> Fainting or near-fainting</label>
+            <label><input type="checkbox" name="Red flag symptoms" value="Unexplained weight loss"> Unexplained weight loss</label>
+            <label><input type="checkbox" name="Red flag symptoms" value="Blood in stool or urine"> Blood in stool or urine</label>
+            <label><input type="checkbox" name="Red flag symptoms" value="Severe or progressive pain"> Severe or progressive pain</label>
+            <label><input type="checkbox" name="Red flag symptoms" value="Abnormal or unusually heavy bleeding"> Abnormal or unusually heavy bleeding</label>
+          </div>
+        </div>
+
+        <h3 style="font-family:'Cormorant Garamond',serif;font-size:1.125rem;color:#4A3728;margin:1.5rem 0 0.5rem;">Your relationship with food</h3>
+        <p class="section-sub" style="margin-bottom:1rem;">Food carries a lot &mdash; habits, memories, sometimes stress. A quick, honest read here helps us support you well.</p>
+
+        <div class="field">
+          <label class="field-label">Do you ever feel uncomfortably full to the point of feeling sick after eating?</label>
+          <div class="check-group check-group--inline">
+            <label><input type="radio" name="Relationship with food: sick" value="Yes" required> Yes</label>
+            <label><input type="radio" name="Relationship with food: sick" value="No"> No</label>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Do you ever feel a loss of control over how much you eat?</label>
+          <div class="check-group check-group--inline">
+            <label><input type="radio" name="Relationship with food: control" value="Yes" required> Yes</label>
+            <label><input type="radio" name="Relationship with food: control" value="No"> No</label>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Have you had a significant weight change (up or down) in the last 3 months?</label>
+          <div class="check-group check-group--inline">
+            <label><input type="radio" name="Relationship with food: weightChange" value="Yes" required> Yes</label>
+            <label><input type="radio" name="Relationship with food: weightChange" value="No"> No</label>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Do you feel dissatisfied with your body even when others say you look fine?</label>
+          <div class="check-group check-group--inline">
+            <label><input type="radio" name="Relationship with food: bodyImage" value="Yes" required> Yes</label>
+            <label><input type="radio" name="Relationship with food: bodyImage" value="No"> No</label>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Does food, eating, or your body occupy a large part of your daily thoughts?</label>
+          <div class="check-group check-group--inline">
+            <label><input type="radio" name="Relationship with food: dominates" value="Yes" required> Yes</label>
+            <label><input type="radio" name="Relationship with food: dominates" value="No"> No</label>
+          </div>
+        </div>
+
         <div class="section-continue">
           <button type="button" class="back-btn" data-back="3">&larr; Back</button>
           <button type="button" data-continue="3">Continue &rarr;</button>
@@ -835,7 +903,7 @@
       <!-- ============ Section 4 — Rainbow Quick-Scan ============ -->
       <fieldset class="intake-section section-locked">
         <div class="section-eyebrow">Section 4</div>
-        <legend>The Rainbow quick-scan</legend>
+        <legend>The Rainbow check-in</legend>
         <p class="section-sub">Each color family supports a different system in the body. For each, check any symptom you&rsquo;ve noticed consistently over the past 3 months. Patterns matter more than totals &mdash; check as many or as few as apply.</p>
 
         <!-- RED -->
@@ -848,9 +916,15 @@
           <p class="color-block-foods">Key foods: cooked tomatoes, watermelon, tart cherries, pomegranate</p>
           <div class="check-group">
             <label><input type="checkbox" name="Red symptoms" value="Persistent joint pain or body aches"> Persistent joint pain or body aches</label>
+            <label><input type="checkbox" name="Red symptoms" value="Chronic low-grade inflammation flares"> Chronic low-grade inflammation flares</label>
             <label><input type="checkbox" name="Red symptoms" value="Skin redness, rosacea, or flushing"> Skin redness, rosacea, or flushing</label>
+            <label><input type="checkbox" name="Red symptoms" value="Known fatty liver or elevated liver enzymes"> Known fatty liver or elevated liver enzymes</label>
             <label><input type="checkbox" name="Red symptoms" value="Elevated cholesterol or blood pressure history"> Elevated cholesterol or blood pressure history</label>
+            <label><input type="checkbox" name="Red symptoms" value="Poor exercise recovery"> Poor exercise recovery</label>
+            <label><input type="checkbox" name="Red symptoms" value="Family history of heart disease or stroke"> Family history of heart disease or stroke</label>
+            <label><input type="checkbox" name="Red symptoms" value="Frequent headaches or migraines"> Frequent headaches or migraines</label>
             <label><input type="checkbox" name="Red symptoms" value="Slow wound healing or easy bruising"> Slow wound healing or easy bruising</label>
+            <label><input type="checkbox" name="Red symptoms" value="Skin that damages easily in the sun"> Skin that damages easily in the sun</label>
           </div>
         </div>
 
@@ -863,10 +937,16 @@
           </div>
           <p class="color-block-foods">Key foods: sweet potato, cooked carrots, pumpkin, turmeric</p>
           <div class="check-group">
-            <label><input type="checkbox" name="Orange symptoms" value="More than 3-4 colds or infections per year"> More than 3&ndash;4 colds or infections per year</label>
-            <label><input type="checkbox" name="Orange symptoms" value="Dry skin, eczema, or keratosis pilaris (bumps on arms)"> Dry skin, eczema, or keratosis pilaris</label>
+            <label><input type="checkbox" name="Orange symptoms" value="More than 3–4 colds or infections per year"> More than 3–4 colds or infections per year</label>
+            <label><input type="checkbox" name="Orange symptoms" value="Frequent respiratory or sinus issues"> Frequent respiratory or sinus issues</label>
+            <label><input type="checkbox" name="Orange symptoms" value="Dry skin or keratosis pilaris (bumps on arms)"> Dry skin or keratosis pilaris (bumps on arms)</label>
+            <label><input type="checkbox" name="Orange symptoms" value="Slow healing of minor cuts or rashes"> Slow healing of minor cuts or rashes</label>
             <label><input type="checkbox" name="Orange symptoms" value="Dry or irritated eyes, poor night vision"> Dry or irritated eyes, poor night vision</label>
+            <label><input type="checkbox" name="Orange symptoms" value="Easily catches what others have"> Easily catches what others have</label>
+            <label><input type="checkbox" name="Orange symptoms" value="Acne, eczema, or skin barrier issues"> Acne, eczema, or skin barrier issues</label>
+            <label><input type="checkbox" name="Orange symptoms" value="Weakened nails or hair"> Weakened nails or hair</label>
             <label><input type="checkbox" name="Orange symptoms" value="Signs of leaky gut or food sensitivities"> Signs of leaky gut or food sensitivities</label>
+            <label><input type="checkbox" name="Orange symptoms" value="Poor recovery after illness"> Poor recovery after illness</label>
           </div>
         </div>
 
@@ -880,9 +960,15 @@
           <p class="color-block-foods">Key foods: lemon with zest, papaya, pineapple, yellow bell pepper</p>
           <div class="check-group">
             <label><input type="checkbox" name="Yellow symptoms" value="Chronic stress, overwhelm, or burnout"> Chronic stress, overwhelm, or burnout</label>
-            <label><input type="checkbox" name="Yellow symptoms" value="Energy crashes between 2-4 pm"> Energy crashes between 2&ndash;4 pm</label>
+            <label><input type="checkbox" name="Yellow symptoms" value="Energy crashes between 2–4 pm"> Energy crashes between 2–4 pm</label>
+            <label><input type="checkbox" name="Yellow symptoms" value="Bleeding gums or gum sensitivity"> Bleeding gums or gum sensitivity</label>
+            <label><input type="checkbox" name="Yellow symptoms" value="Cravings for salty or sugary foods"> Cravings for salty or sugary foods</label>
+            <label><input type="checkbox" name="Yellow symptoms" value="Easy bruising without clear cause"> Easy bruising without clear cause</label>
+            <label><input type="checkbox" name="Yellow symptoms" value="Low iron despite supplementation"> Low iron despite supplementation</label>
+            <label><input type="checkbox" name="Yellow symptoms" value="Stretch marks or easily-tearing skin"> Stretch marks or easily-tearing skin</label>
+            <label><input type="checkbox" name="Yellow symptoms" value="Frequent viral illnesses"> Frequent viral illnesses</label>
             <label><input type="checkbox" name="Yellow symptoms" value="Morning fatigue despite adequate sleep"> Morning fatigue despite adequate sleep</label>
-            <label><input type="checkbox" name="Yellow symptoms" value="Dizziness when standing up quickly"> Dizziness when standing up quickly</label>
+            <label><input type="checkbox" name="Yellow symptoms" value="Dizziness when standing quickly"> Dizziness when standing quickly</label>
           </div>
         </div>
 
@@ -896,9 +982,17 @@
           <p class="color-block-foods">Key foods: spinach, kale, collard greens, Swiss chard, moringa</p>
           <div class="check-group">
             <label><input type="checkbox" name="Green symptoms" value="Persistent fatigue or weakness"> Persistent fatigue or weakness</label>
+            <label><input type="checkbox" name="Green symptoms" value="Cold hands and feet"> Cold hands and feet</label>
             <label><input type="checkbox" name="Green symptoms" value="Heavy or painful menstrual cycles"> Heavy or painful menstrual cycles</label>
+            <label><input type="checkbox" name="Green symptoms" value="Numbness or tingling in extremities"> Numbness or tingling in extremities</label>
+            <label><input type="checkbox" name="Green symptoms" value="Restless legs, especially at night"> Restless legs, especially at night</label>
+            <label><input type="checkbox" name="Green symptoms" value="Low mood, anxiety, or irritability"> Low mood, anxiety, or irritability</label>
             <label><input type="checkbox" name="Green symptoms" value="Hair thinning or increased shedding"> Hair thinning or increased shedding</label>
+            <label><input type="checkbox" name="Green symptoms" value="Shortness of breath with mild exertion"> Shortness of breath with mild exertion</label>
             <label><input type="checkbox" name="Green symptoms" value="Pale skin, lips, or inner eyelids"> Pale skin, lips, or inner eyelids</label>
+            <label><input type="checkbox" name="Green symptoms" value="Poor bone density or family osteoporosis"> Poor bone density or family osteoporosis</label>
+            <label><input type="checkbox" name="Green symptoms" value="Brittle nails or ridging"> Brittle nails or ridging</label>
+            <label><input type="checkbox" name="Green symptoms" value="Muscle twitches or spasms"> Muscle twitches or spasms</label>
           </div>
         </div>
 
@@ -912,9 +1006,16 @@
           <p class="color-block-foods">Key foods: broccoli sprouts, Brussels sprouts, cabbage, bok choy</p>
           <div class="check-group">
             <label><input type="checkbox" name="Green-white symptoms" value="Heavy periods or severe PMS"> Heavy periods or severe PMS</label>
+            <label><input type="checkbox" name="Green-white symptoms" value="Slow to metabolize caffeine or alcohol"> Slow to metabolize caffeine or alcohol</label>
             <label><input type="checkbox" name="Green-white symptoms" value="Breast tenderness (cyclical or constant)"> Breast tenderness (cyclical or constant)</label>
-            <label><input type="checkbox" name="Green-white symptoms" value="Estrogen-dominance symptoms (bloating, mood swings, water retention, heavy periods, breast tenderness)"><span class="check-label-text"><button type="button" class="define-term" data-term="estrogen-dominance">Estrogen-dominance</button> symptoms <span class="check-examples">(bloating, mood swings, water retention, breast tenderness)</span></span></label>
-            <label><input type="checkbox" name="Green-white symptoms" value="Difficulty detoxing from illness or medication"> Difficulty detoxing from illness or meds</label>
+            <label><input type="checkbox" name="Green-white symptoms" value="Acne along jaw or chin"> Acne along jaw or chin</label>
+            <label><input type="checkbox" name="Green-white symptoms" value="Fibrocystic breasts"> Fibrocystic breasts</label>
+            <label><input type="checkbox" name="Green-white symptoms" value="Estrogen-dominance symptoms (bloat, mood swings)"> Estrogen-dominance symptoms (bloat, mood swings)</label>
+            <label><input type="checkbox" name="Green-white symptoms" value="Uterine fibroids or endometriosis"> Uterine fibroids or endometriosis</label>
+            <label><input type="checkbox" name="Green-white symptoms" value="Long history of oral contraceptive use"> Long history of oral contraceptive use</label>
+            <label><input type="checkbox" name="Green-white symptoms" value="Family history of hormone-related cancers"> Family history of hormone-related cancers</label>
+            <label><input type="checkbox" name="Green-white symptoms" value="Difficulty detoxing from illness or medication"> Difficulty detoxing from illness or medication</label>
+            <label><input type="checkbox" name="Green-white symptoms" value="Sensitivity to environmental chemicals/fragrances"> Sensitivity to environmental chemicals/fragrances</label>
           </div>
         </div>
 
@@ -928,9 +1029,16 @@
           <p class="color-block-foods">Key foods: raw garlic, onions, leeks, asparagus, shallots</p>
           <div class="check-group">
             <label><input type="checkbox" name="White symptoms" value="Seasonal or environmental allergies"> Seasonal or environmental allergies</label>
+            <label><input type="checkbox" name="White symptoms" value="Cold hands and feet, poor circulation"> Cold hands and feet, poor circulation</label>
             <label><input type="checkbox" name="White symptoms" value="Histamine reactions (flushing, hives, itching)"> Histamine reactions (flushing, hives, itching)</label>
-            <label><input type="checkbox" name="White symptoms" value="Bloating soon after eating"> Bloating soon after eating</label>
+            <label><input type="checkbox" name="White symptoms" value="Strong reactions to fermented foods or wine"> Strong reactions to fermented foods or wine</label>
+            <label><input type="checkbox" name="White symptoms" value="Food sensitivities that fluctuate"> Food sensitivities that fluctuate</label>
+            <label><input type="checkbox" name="White symptoms" value="Recurring UTIs or yeast infections"> Recurring UTIs or yeast infections</label>
             <label><input type="checkbox" name="White symptoms" value="Chronic sinus congestion or post-nasal drip"> Chronic sinus congestion or post-nasal drip</label>
+            <label><input type="checkbox" name="White symptoms" value="Body odor changes or halitosis"> Body odor changes or halitosis</label>
+            <label><input type="checkbox" name="White symptoms" value="Bloating soon after eating"> Bloating soon after eating</label>
+            <label><input type="checkbox" name="White symptoms" value="Frequent need for antihistamines"> Frequent need for antihistamines</label>
+            <label><input type="checkbox" name="White symptoms" value="Signs of gut dysbiosis or yeast overgrowth"> Signs of gut dysbiosis or yeast overgrowth</label>
           </div>
         </div>
 
@@ -944,9 +1052,16 @@
           <p class="color-block-foods">Key foods: wild blueberries, blackberries, Concord grapes, plums</p>
           <div class="check-group">
             <label><input type="checkbox" name="Blue symptoms" value="Brain fog or difficulty concentrating"> Brain fog or difficulty concentrating</label>
+            <label><input type="checkbox" name="Blue symptoms" value="Weight gain around the midsection"> Weight gain around the midsection</label>
+            <label><input type="checkbox" name="Blue symptoms" value="Memory lapses or word-finding issues"> Memory lapses or word-finding issues</label>
+            <label><input type="checkbox" name="Blue symptoms" value="Family history of cognitive decline"> Family history of cognitive decline</label>
             <label><input type="checkbox" name="Blue symptoms" value="Blood sugar crashes or shakiness"> Blood sugar crashes or shakiness</label>
+            <label><input type="checkbox" name="Blue symptoms" value="Mood swings tied to eating patterns"> Mood swings tied to eating patterns</label>
+            <label><input type="checkbox" name="Blue symptoms" value="Strong afternoon energy dip"> Strong afternoon energy dip</label>
+            <label><input type="checkbox" name="Blue symptoms" value="Poor recovery from mental fatigue"> Poor recovery from mental fatigue</label>
             <label><input type="checkbox" name="Blue symptoms" value="Intense sugar or carb cravings"> Intense sugar or carb cravings</label>
-            <label><input type="checkbox" name="Blue symptoms" value="Wake between 2-4 am and cannot return to sleep"> Wake between 2&ndash;4 am and can&rsquo;t return to sleep</label>
+            <label><input type="checkbox" name="Blue symptoms" value="Wakes between 2–4 am and cannot return to sleep"> Wakes between 2–4 am and cannot return to sleep</label>
+            <label><input type="checkbox" name="Blue symptoms" value="Irritability when meals are delayed"> Irritability when meals are delayed</label>
           </div>
         </div>
 
@@ -959,10 +1074,17 @@
           </div>
           <p class="color-block-foods">Key foods: beets, red cabbage, figs, eggplant with skin, black grapes</p>
           <div class="check-group">
-            <label><input type="checkbox" name="Purple symptoms" value="Irregular cycles or perimenopause/menopause symptoms"><span class="check-label-text">Irregular <button type="button" class="define-term" data-term="cycle">cycles</button> or <button type="button" class="define-term" data-term="perimenopause">peri/menopause</button> symptoms</span></label>
-            <label><input type="checkbox" name="Purple symptoms" value="Low libido or noticeable hormonal shifts"> Low libido or hormonal shifts</label>
+            <label><input type="checkbox" name="Purple symptoms" value="Irregular or absent menstrual cycles"> Irregular or absent menstrual cycles</label>
+            <label><input type="checkbox" name="Purple symptoms" value="Puffiness, water retention, or poor lymphatic flow"> Puffiness, water retention, or poor lymphatic flow</label>
+            <label><input type="checkbox" name="Purple symptoms" value="Symptoms of perimenopause or menopause"> Symptoms of perimenopause or menopause</label>
+            <label><input type="checkbox" name="Purple symptoms" value="Slow recovery from workouts or illness"> Slow recovery from workouts or illness</label>
+            <label><input type="checkbox" name="Purple symptoms" value="Low libido or hormonal shifts"> Low libido or hormonal shifts</label>
+            <label><input type="checkbox" name="Purple symptoms" value="Premature aging signs (skin, hair, energy)"> Premature aging signs (skin, hair, energy)</label>
             <label><input type="checkbox" name="Purple symptoms" value="Low energy despite adequate sleep"> Low energy despite adequate sleep</label>
-            <label><input type="checkbox" name="Purple symptoms" value="Temperature dysregulation (hot flashes, cold intolerance)"> Temperature dysregulation</label>
+            <label><input type="checkbox" name="Purple symptoms" value="Weight changes without dietary change"> Weight changes without dietary change</label>
+            <label><input type="checkbox" name="Purple symptoms" value="Mood swings or emotional volatility"> Mood swings or emotional volatility</label>
+            <label><input type="checkbox" name="Purple symptoms" value="Thinning or loss of outer eyebrow edge"> Thinning or loss of outer eyebrow edge</label>
+            <label><input type="checkbox" name="Purple symptoms" value="Temperature dysregulation (hot flashes, cold intolerance)"> Temperature dysregulation (hot flashes, cold intolerance)</label>
           </div>
         </div>
 
@@ -975,10 +1097,18 @@
           </div>
           <p class="color-block-foods">Key foods: lentils, oats, black beans, quinoa, flaxseed</p>
           <div class="check-group">
-            <label><input type="checkbox" name="Brown symptoms" value="Constipation (fewer than 1 bowel movement daily)"> Constipation (fewer than 1 BM/day)</label>
+            <label><input type="checkbox" name="Brown symptoms" value="Constipation (fewer than 1 bowel movement daily)"> Constipation (fewer than 1 bowel movement daily)</label>
+            <label><input type="checkbox" name="Brown symptoms" value="Feeling heavy or sluggish after eating"> Feeling heavy or sluggish after eating</label>
             <label><input type="checkbox" name="Brown symptoms" value="Muscle cramps, especially at night"> Muscle cramps, especially at night</label>
-            <label><input type="checkbox" name="Brown symptoms" value="Anxiety or feeling wired but tired"> Anxiety or feeling &ldquo;wired but tired&rdquo;</label>
+            <label><input type="checkbox" name="Brown symptoms" value="Poor tolerance of fats or dense foods"> Poor tolerance of fats or dense foods</label>
+            <label><input type="checkbox" name="Brown symptoms" value="Restless sleep or difficulty falling asleep"> Restless sleep or difficulty falling asleep</label>
+            <label><input type="checkbox" name="Brown symptoms" value="Eye twitches or muscle tremors"> Eye twitches or muscle tremors</label>
+            <label><input type="checkbox" name="Brown symptoms" value="Anxiety or feeling &quot;wired but tired&quot;"> Anxiety or feeling &quot;wired but tired&quot;</label>
+            <label><input type="checkbox" name="Brown symptoms" value="Heart palpitations (especially with stress)"> Heart palpitations (especially with stress)</label>
+            <label><input type="checkbox" name="Brown symptoms" value="Tension headaches or tight jaw/shoulders"> Tension headaches or tight jaw/shoulders</label>
+            <label><input type="checkbox" name="Brown symptoms" value="Sluggish elimination or sense of &quot;toxic buildup&quot;"> Sluggish elimination or sense of &quot;toxic buildup&quot;</label>
             <label><input type="checkbox" name="Brown symptoms" value="Sugar cravings after meals"> Sugar cravings after meals</label>
+            <label><input type="checkbox" name="Brown symptoms" value="Slow morning energy and digestion"> Slow morning energy and digestion</label>
           </div>
         </div>
 

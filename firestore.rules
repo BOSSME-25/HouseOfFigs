@@ -181,6 +181,23 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------
+    // /assessments/{intakeId} + /plans/{intakeId} — the Rooted Assessment
+    // pipeline. Written by Cloud Functions (admin SDK bypasses rules);
+    // admins read everything and may edit plan drafts. NEVER public: the
+    // assessment is the practitioner-side clinical file (two-audience rule)
+    // and plans must not be readable before Bethany approves + sends.
+    // -------------------------------------------------------------------
+    match /assessments/{intakeId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    match /plans/{intakeId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // -------------------------------------------------------------------
     // Default deny for any other collection
     // -------------------------------------------------------------------
     match /{anything=**} {

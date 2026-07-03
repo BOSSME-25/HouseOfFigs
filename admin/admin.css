@@ -867,3 +867,59 @@ html, body {
 .lead-row-chip.s-contacted { background-color: #dfe7ef; color: #4a6076; }
 .lead-row-chip.s-client { background-color: #e4ecdd; color: #4f6540; }
 .lead-row-chip.s-archived { background-color: #eee; color: #999; }
+
+/* Rooted Assessment workspace */
+.plan-chip.s-halted { background-color: #f3ded9; color: #a84b42; }
+.plan-chip.s-draft { background-color: #f0e7d8; color: #8a7355; }
+.plan-chip.s-ready { background-color: #dfe7ef; color: #4a6076; }
+.plan-chip.s-sent { background-color: #e4ecdd; color: #4f6540; }
+
+.halt-banner {
+  background-color: #faf0ee;
+  border: 1px solid #e5c4bd;
+  border-radius: 8px;
+  padding: 0.9rem 1rem;
+  margin: 1rem 0;
+  font-size: 0.875rem;
+  color: #7c3a32;
+  line-height: 1.55;
+}
+
+.aw-client {
+  background-color: var(--color-soft-cream);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0.9rem 1rem;
+  margin: 1rem 0;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--color-text-dark);
+}
+
+.aw-section { margin: 1.25rem 0; }
+.aw-section h3 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.1rem;
+  color: var(--color-deep-fig);
+  margin: 0 0 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 0.3rem;
+}
+.aw-item { font-size: 0.875rem; color: var(--color-text-dark); line-height: 1.55; margin-bottom: 0.4rem; }
+.aw-muted { font-size: 0.8125rem; color: var(--color-muted); line-height: 1.5; }
+.aw-evidence { font-size: 0.75rem; color: #a29483; line-height: 1.5; }
+
+.aw-table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
+.aw-table th {
+  text-align: left; font-weight: 600; color: var(--color-olive-leaf);
+  text-transform: uppercase; font-size: 0.6875rem; letter-spacing: 0.05em;
+  padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--color-border);
+}
+.aw-table td { padding: 0.35rem 0.5rem; border-bottom: 1px solid #f2ebdf; color: var(--color-text-dark); }
+
+.aw-plan {
+  background-color: #fbf8f3;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 1rem 1.1rem;
+}

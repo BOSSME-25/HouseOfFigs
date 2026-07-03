@@ -20,6 +20,9 @@ const { onDocumentCreated, onDocumentUpdated } = require('firebase-functions/v2/
 const { defineSecret } = require('firebase-functions/params');
 const { setGlobalOptions } = require('firebase-functions/v2');
 const nodemailer = require('nodemailer');
+const admin = require('firebase-admin');
+
+admin.initializeApp();
 
 // ---- Config ----
 const FROM_ADDRESS = 'bethany@houseoffigs.org';
@@ -343,3 +346,18 @@ exports.onQuizFollowupEmail = onDocumentUpdated(
     });
   }
 );
+
+// =========================================================================
+// ROOTED ASSESSMENT PIPELINE — engine + Claude-drafted plan (see
+// rooted-pipeline.js). Registered here so it shares the email helpers.
+// =========================================================================
+const { registerRootedPipeline } = require('./rooted-pipeline');
+Object.assign(exports, registerRootedPipeline({
+  gmailPassword,
+  makeTransport,
+  emailShell,
+  FROM_ADDRESS,
+  NOTIFY_TO,
+  DASHBOARD_URL,
+  escape
+}));
