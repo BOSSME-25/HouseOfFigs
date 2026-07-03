@@ -733,6 +733,9 @@ function registerRootedPipeline({ gmailPassword, makeTransport, emailShell, FROM
       for (const snap of assessments.docs) {
         const a = snap.data();
         const j = a.journey || {};
+        // Global suppression rule (Funnel Logic Map): a safety hold
+        // suspends every scheduled send for that contact.
+        if (a.status === 'halted') continue;
         if (!j.email1SentAt || j.email2SentAt || j.gdReturnedAt) continue;
         const age = now - Date.parse(j.email1SentAt);
         if (isNaN(age) || age < 3 * DAY || age > 10 * DAY) continue;
