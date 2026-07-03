@@ -61,7 +61,7 @@
           <li><a href="contact.html">Contact</a></li>
         </ul>
         <a href="https://figatry.com" target="_blank" rel="noopener" class="nav-figatry"><span class="nav-figatry-mark">Fig&middot;atry</span> &rarr;</a>
-        <a href="https://calendly.com/houseoffigscompany/30min" target="_blank" rel="noopener" class="btn btn--primary nav-cta">Book a Consultation</a>
+        <a href="quiz.html" class="btn btn--primary nav-cta">Take the Free Quiz</a>
       </nav>
     </div>
   </header>
@@ -89,7 +89,30 @@
           <div class="fade-in">
             <h2>Send a Message</h2>
             <p style="color: #666; margin-bottom: 2rem;">Fill out the form below and I'll get back to you within 1&ndash;2 business days.</p>
-            <div class="ml-embedded" data-form="xpojBQ"></div>
+            <form id="rmi-form" novalidate>
+              <div style="margin-bottom:1rem;">
+                <label for="rmi-name" style="display:block;font-size:0.875rem;font-weight:600;color:#4A3728;margin-bottom:0.35rem;">Your name</label>
+                <input type="text" id="rmi-name" name="name" required autocomplete="name"
+                  style="width:100%;box-sizing:border-box;font-family:'Inter',sans-serif;font-size:0.9375rem;padding:0.65rem 0.75rem;border:1px solid #ece2cf;border-radius:8px;">
+              </div>
+              <div style="margin-bottom:1rem;">
+                <label for="rmi-email" style="display:block;font-size:0.875rem;font-weight:600;color:#4A3728;margin-bottom:0.35rem;">Email</label>
+                <input type="email" id="rmi-email" name="email" required autocomplete="email"
+                  style="width:100%;box-sizing:border-box;font-family:'Inter',sans-serif;font-size:0.9375rem;padding:0.65rem 0.75rem;border:1px solid #ece2cf;border-radius:8px;">
+              </div>
+              <div style="margin-bottom:1.25rem;">
+                <label for="rmi-message" style="display:block;font-size:0.875rem;font-weight:600;color:#4A3728;margin-bottom:0.35rem;">What can I help you with?</label>
+                <textarea id="rmi-message" name="message" rows="5"
+                  style="width:100%;box-sizing:border-box;font-family:'Inter',sans-serif;font-size:0.9375rem;padding:0.65rem 0.75rem;border:1px solid #ece2cf;border-radius:8px;resize:vertical;"></textarea>
+              </div>
+              <button type="submit" id="rmi-submit" class="btn btn--primary">Send message &rarr;</button>
+              <p id="rmi-status" style="font-size:0.875rem;color:#a84b42;min-height:1.2em;margin-top:0.5rem;"></p>
+            </form>
+            <div id="rmi-thanks" style="display:none;">
+              <p style="font-size:1rem;color:#2C2C2C;line-height:1.7;"><strong>Thank you &mdash; your message is on its way.</strong><br>
+              While you wait to hear back, the free color quiz is the best first step: three minutes, and you&rsquo;ll learn which of your body&rsquo;s systems are asking for support.</p>
+              <p style="margin-top:1rem;"><a href="quiz.html" class="btn btn--primary">Take the free color quiz &rarr;</a></p>
+            </div>
           </div>
 
           <!-- Contact Info -->
@@ -115,9 +138,9 @@
             <div class="contact-detail">
               <div class="contact-detail-icon" aria-hidden="true">&#x1F4C5;</div>
               <div>
-                <strong>Book Directly</strong>
-                <p style="margin-bottom: 0.75rem; color: #666;">Skip the form and schedule a free consultation directly.</p>
-                <a href="https://calendly.com/houseoffigscompany/30min" target="_blank" rel="noopener" class="btn btn--secondary" style="font-size: 0.875rem; padding: 0.625rem 1.5rem;">Schedule Now</a>
+                <strong>The path to a consultation</strong>
+                <p style="margin-bottom: 0.75rem; color: #666;">Every consultation begins with the free color quiz &mdash; your booking invitation arrives with your results.</p>
+                <a href="quiz.html" class="btn btn--secondary" style="font-size: 0.875rem; padding: 0.625rem 1.5rem;">Start with the Quiz</a>
               </div>
             </div>
 
@@ -190,6 +213,45 @@
 
   <script src="js/main.js"></script>
   <script src="js/quiz-prompt.js"></script>
+  <!-- RMI form -> Firestore -->
+  <script type="module" src="js/firebase-public.mjs"></script>
+  <script>
+    (function () {
+      var form = document.getElementById('rmi-form');
+      if (!form) return;
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var statusEl = document.getElementById('rmi-status');
+        var btn = document.getElementById('rmi-submit');
+        var name = document.getElementById('rmi-name').value.trim();
+        var email = document.getElementById('rmi-email').value.trim();
+        var message = document.getElementById('rmi-message').value.trim();
+        if (!name) { statusEl.textContent = 'Please add your name.'; return; }
+        if (!email || email.indexOf('@') === -1) { statusEl.textContent = 'Please add a valid email.'; return; }
+        btn.disabled = true; btn.textContent = 'Sending\u2026'; statusEl.textContent = '';
+        function submit() {
+          window.hofFirebase.addRmi({
+            name: name,
+            email: email.toLowerCase(),
+            message: message,
+            createdAt: new Date().toISOString(),
+            referer: (document.referrer || '').slice(0, 500)
+          }).then(function () {
+            form.style.display = 'none';
+            document.getElementById('rmi-thanks').style.display = 'block';
+            if (typeof gtag === 'function') gtag('event', 'rmi_submitted');
+          }).catch(function (err) {
+            console.warn('RMI submit failed:', err);
+            btn.disabled = false; btn.textContent = 'Send message \u2192';
+            statusEl.textContent = 'Something went wrong. Please email bethany@houseoffigs.org directly.';
+          });
+        }
+        if (window.hofFirebase) submit();
+        else window.addEventListener('hofFirebaseReady', submit, { once: true });
+      });
+    })();
+  </script>
+
   <!-- MailerLite Universal -->
   <script>
     (function(w,d,e,u,f,l,n){w[f]=w[f]||function(){(w[f].q=w[f].q||[])

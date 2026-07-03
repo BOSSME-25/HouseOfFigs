@@ -709,6 +709,68 @@ function registerRootedPipeline({ gmailPassword, makeTransport, emailShell, FROM
   );
 
   // -------------------------------------------------------------------
+  // RMI submitted (Entry B, Funnel Logic Map T4): notify admins and send
+  // R1 — warm thanks + the quiz invitation. NO booking link, ever: RMI
+  // leads are routed to the quiz first, always.
+  // -------------------------------------------------------------------
+  const QUIZ_URL = 'https://houseoffigs.org/quiz.html';
+
+  const onRmiCreated = onDocumentCreated(
+    {
+      document: 'rmi/{docId}',
+      secrets: [gmailPassword]
+    },
+    async (event) => {
+      const rmi = event.data && event.data.data();
+      if (!rmi) return;
+      const e = escape;
+      const transport = makeTransport();
+
+      // Admin notification
+      await transport.sendMail({
+        from: `House of Figs <${FROM_ADDRESS}>`,
+        to: NOTIFY_TO.join(', '),
+        replyTo: rmi.email || FROM_ADDRESS,
+        subject: `New message — ${rmi.name || rmi.email}`,
+        html: emailShell(
+          `New message from <em>${e(rmi.name || 'Unnamed')}</em>`,
+          `<div style="font-size:0.9375rem;color:#2C2C2C;line-height:1.6;">
+             <div style="margin-bottom:8px;"><strong>Email:</strong> ${e(rmi.email || '')}</div>
+             <div><strong>Message:</strong><br>${e(rmi.message || '(none)')}</div>
+           </div>`,
+          DASHBOARD_URL,
+          'Open dashboard'
+        )
+      });
+
+      // R1 — the quiz invitation (no booking link)
+      if (rmi.email) {
+        const firstName = String(rmi.name || '').trim().split(/\s+/)[0] || 'there';
+        try {
+          await transport.sendMail({
+            from: `Bethany Grissum, House of Figs <${FROM_ADDRESS}>`,
+            to: rmi.email,
+            replyTo: FROM_ADDRESS,
+            subject: `So glad you reached out, ${firstName}`,
+            html: personalEmail(`
+              <p>Hi ${e(firstName)},</p>
+              <p>Thank you for reaching out — your message is in my hands, and I'll reply personally within a day or two.</p>
+              <p>While I do, there's one small step that makes everything that follows better: the <a href="${e(QUIZ_URL)}" style="color:#8B5E5A;">free color quiz</a>. Three minutes, and it shows us which of your body's systems are asking for support — your color profile, the direction of your daily pour, and the clearest place to begin.</p>
+              <p>It's also the doorway to the free 20-minute session, where we look at your whole picture together and you leave with a custom juice recipe built just for your colors.</p>
+              <p>Take the quiz here: <a href="${e(QUIZ_URL)}" style="color:#8B5E5A;">${e(QUIZ_URL)}</a></p>
+            `)
+          });
+          await admin.firestore().collection('rmi').doc(event.params.docId).set({
+            r1SentAt: new Date().toISOString()
+          }, { merge: true });
+        } catch (err) {
+          console.error('R1 email failed (admin notify already sent):', err);
+        }
+      }
+    }
+  );
+
+  // -------------------------------------------------------------------
   // Daily nudges, 9am Arizona. Two jobs, both single-shot per person:
   //  1. Email Two — the ONE gentle Going Deeper nudge, day 3–4 after
   //     Email One, only if the form hasn't returned. One nudge only; the
@@ -770,22 +832,26 @@ function registerRootedPipeline({ gmailPassword, makeTransport, emailShell, FROM
         }
       }
 
-      // ---- Day-3 quiz nudge ----
-      const [quizzes, intakes] = await Promise.all([
+      // ---- Q2 (day-3 quiz nudge), R2 (day-3 RMI nudge), D1 (day-14) ----
+      const [quizzes, intakes, rmis] = await Promise.all([
         db.collection('quizzes').get(),
-        db.collection('intakes').get()
+        db.collection('intakes').get(),
+        db.collection('rmi').get()
       ]);
       const intakeEmails = new Set(
         intakes.docs.map(d => String(d.data().email || d.data().Email || '').toLowerCase().trim()).filter(Boolean)
       );
+      const quizEmails = new Set(
+        quizzes.docs.map(d => String(d.data().email || '').toLowerCase().trim()).filter(Boolean)
+      );
       const nudgedEmails = new Set();
 
+      // Q2 — day-3 quiz nudge: one CTA (intake + booking), recipe promise.
       for (const snap of quizzes.docs) {
         const q = snap.data();
         const email = String(q.email || '').toLowerCase().trim();
-        if (!email || q.quizNudgeSentAt || intakeEmails.has(email) || nudgedEmails.has(email)) continue;
-        const captured = Date.parse(q.emailCapturedAt || q.createdAt || '');
-        const age = now - captured;
+        if (!email || q.quizNudgeSentAt || q.dormantAt || intakeEmails.has(email) || nudgedEmails.has(email)) continue;
+        const age = now - Date.parse(q.emailCapturedAt || q.createdAt || '');
         if (isNaN(age) || age < 3 * DAY || age > 10 * DAY) continue;
 
         const firstName = String(q.name || '').trim().split(/\s+/)[0] || 'there';
@@ -794,7 +860,7 @@ function registerRootedPipeline({ gmailPassword, makeTransport, emailShell, FROM
         const html = personalEmail(`
           <p>Hi ${e(firstName)},</p>
           <p>A few days ago the quiz showed you something real — ${profile ? `you're <strong>${e(profile.replace(/^The /, 'a '))}</strong>, and ` : ''}your body has been asking for a particular kind of support. That doesn't go away on its own, but it does respond — often faster than people expect.</p>
-          <p>Whenever you're ready, the next step is a short intake and a free consultation — that's where we look at your whole picture together and find your clearest place to begin.</p>
+          <p>Whenever you're ready, the next step is a short intake and a free 20-minute consultation — that's where we look at your whole picture together, and where you leave with your <strong>custom juice recipe</strong>, the pour I build around your colors.</p>
           <p>Complete your intake: <a href="${e(INTAKE_URL)}" style="color:#8B5E5A;">${e(INTAKE_URL)}</a><br>
           Book your free consultation: <a href="${e(BOOKING_URL)}" style="color:#8B5E5A;">${e(BOOKING_URL)}</a></p>
           <p>No rush, and no pressure — just an open door.</p>
@@ -816,10 +882,94 @@ function registerRootedPipeline({ gmailPassword, makeTransport, emailShell, FROM
           console.error(`Quiz nudge failed for ${snap.id}:`, err);
         }
       }
+
+      // R2 — day-3 RMI nudge: gentle repeat of the quiz invitation.
+      for (const snap of rmis.docs) {
+        const r = snap.data();
+        const email = String(r.email || '').toLowerCase().trim();
+        if (!email || r.rmiNudgeSentAt || r.dormantAt || quizEmails.has(email) || nudgedEmails.has(email)) continue;
+        const age = now - Date.parse(r.createdAt || '');
+        if (isNaN(age) || age < 3 * DAY || age > 10 * DAY) continue;
+
+        const firstName = String(r.name || '').trim().split(/\s+/)[0] || 'there';
+        const html = personalEmail(`
+          <p>Hi ${e(firstName)},</p>
+          <p>Just a soft follow-up — the free color quiz is still here whenever you have three quiet minutes: <a href="${e(QUIZ_URL)}" style="color:#8B5E5A;">${e(QUIZ_URL)}</a>.</p>
+          <p>It's the first step toward your color profile, your daily pour, and the free session where you'll leave with a custom juice recipe built around what your body's been asking for.</p>
+          <p>No rush at all — the door stays open.</p>
+        `);
+
+        try {
+          await transport.sendMail({
+            from: `Bethany Grissum, House of Figs <${FROM_ADDRESS}>`,
+            to: email,
+            replyTo: FROM_ADDRESS,
+            subject: `Whenever you're ready, ${firstName}`,
+            html
+          });
+          nudgedEmails.add(email);
+          await db.collection('rmi').doc(snap.id).set({
+            rmiNudgeSentAt: new Date().toISOString()
+          }, { merge: true });
+        } catch (err) {
+          console.error(`RMI nudge failed for ${snap.id}:`, err);
+        }
+      }
+
+      // D1 — day-14 goodbye-for-now, then dormant. One per person, ever.
+      // (The quarterly Ripening touch is a future asset per the logic map.)
+      const d1Candidates = [];
+      for (const snap of quizzes.docs) {
+        const q = snap.data();
+        const email = String(q.email || '').toLowerCase().trim();
+        if (!email || q.dormantAt || intakeEmails.has(email)) continue;
+        const age = now - Date.parse(q.emailCapturedAt || q.createdAt || '');
+        if (isNaN(age) || age < 14 * DAY || age > 30 * DAY) continue;
+        d1Candidates.push({ col: 'quizzes', id: snap.id, email, name: q.name });
+      }
+      for (const snap of rmis.docs) {
+        const r = snap.data();
+        const email = String(r.email || '').toLowerCase().trim();
+        if (!email || r.dormantAt || quizEmails.has(email)) continue;
+        const age = now - Date.parse(r.createdAt || '');
+        if (isNaN(age) || age < 14 * DAY || age > 30 * DAY) continue;
+        d1Candidates.push({ col: 'rmi', id: snap.id, email, name: r.name });
+      }
+      const d1Sent = new Set();
+      for (const c of d1Candidates) {
+        if (d1Sent.has(c.email) || nudgedEmails.has(c.email)) {
+          // still mark dormant so they aren't re-considered daily
+          await db.collection(c.col).doc(c.id).set({ dormantAt: new Date().toISOString() }, { merge: true });
+          continue;
+        }
+        const firstName = String(c.name || '').trim().split(/\s+/)[0] || 'there';
+        const html = personalEmail(`
+          <p>Hi ${e(firstName)},</p>
+          <p>I'll leave you be after this note — no more reminders, I promise. Just know the door doesn't close: the <a href="${e(QUIZ_URL)}" style="color:#8B5E5A;">free color quiz</a> and everything that follows will be right here whenever the season is right.</p>
+          <p>Until then, one small thing you can start today: a little more color on the plate, a little more water through the day. Small things compound.</p>
+          <p>Rooting for you either way.</p>
+        `);
+        try {
+          await transport.sendMail({
+            from: `Bethany Grissum, House of Figs <${FROM_ADDRESS}>`,
+            to: c.email,
+            replyTo: FROM_ADDRESS,
+            subject: `The door stays open, ${firstName}`,
+            html
+          });
+          d1Sent.add(c.email);
+          await db.collection(c.col).doc(c.id).set({
+            dormantAt: new Date().toISOString(),
+            d1SentAt: new Date().toISOString()
+          }, { merge: true });
+        } catch (err) {
+          console.error(`D1 failed for ${c.col}/${c.id}:`, err);
+        }
+      }
     }
   );
 
-  return { onIntakeAssessment, onAssessmentRequested, onGoingDeeperCreated, onHoldCleared, onPlanApproved, onConsultHeld, dailyNudges };
+  return { onIntakeAssessment, onAssessmentRequested, onGoingDeeperCreated, onHoldCleared, onPlanApproved, onConsultHeld, onRmiCreated, dailyNudges };
 }
 
 module.exports = { registerRootedPipeline, leakCheck, planText, PLAN_SCHEMA, buildDraftPrompt, DRAFT_SYSTEM };

@@ -292,7 +292,8 @@ const QUIZ_FOLLOWUPS = {
       'A Rebuilder’s body is reaching for the deep, jewel-toned foods right now: the reds, blues, and purples. Cooked tomatoes and pomegranate. Wild blueberries and Concord grapes. Beets, figs, and black grapes. These are the foods of recovery and renewal, the ones that help a tired, worked-hard body settle, repair, and come back to itself.',
       'If you’d like somewhere to begin today, keep it small: add one deep-colored food to a single meal. A handful of frozen wild blueberries in the morning. Roasted beets at dinner. Nothing to overhaul, just one quiet act of restoration. Because this was never about restriction. It’s about rebuilding.',
       'When you’re ready to go deeper, I’d love to meet you — and the next step is your intake form. Think of your quiz and your intake as a pair. The quiz was a first glance at which colors your body is reaching for. The intake fills in the rest of your story: your rhythms, your history, the way your body has been speaking to you day to day. On their own, each tells me a little. Together, they give us a clear picture of where restoration needs to begin, so we’re never guessing. By the time we sit down for your free consultation, your starting point is already in front of us, and our whole conversation can go toward the path forward.',
-      'It only takes a few minutes, and it’s the most useful thing you can do before we talk.'
+      'It only takes a few minutes, and it’s the most useful thing you can do before we talk.',
+      'One promise and one kind ask. The promise: when we sit down for your free 20-minute consultation, you’ll leave with your custom juice recipe — a pour built around your colors, yours to keep. The ask: have your intake complete at least 24 hours before we meet, so I can walk in already knowing your story. If it isn’t in by then, the session simply releases and you can rebook whenever you’re ready — no harm done.'
     ]
   },
   'The Balancer': {
@@ -303,7 +304,8 @@ const QUIZ_FOLLOWUPS = {
       'A Balancer’s body is doing the quiet, everyday work of digesting, clearing, and grounding, and it’s reaching for the greens, whites, and earthy browns to help. Leafy greens and broccoli sprouts. Garlic, onions, and leeks. Lentils, oats, and flaxseed. These are the foods that steady digestion, support your body’s natural rhythms of renewal, and help everything run a little smoother.',
       'If you’d like somewhere to begin today, make it simple: add one grounding food to your plate. A spoonful of ground flax in the morning. A handful of greens at lunch. Sautéed onions at dinner. One small step toward balance.',
       'When you’re ready to go deeper, I’d love to meet you — and the next step is your intake form. Think of your quiz and your intake as a pair. The quiz was a first glance at which colors your body is reaching for. The intake fills in the rest of your story: your rhythms, your history, the way your body has been speaking to you day to day. On their own, each tells me a little. Together, they give us a clear picture of where your body is asking for balance, so we’re never guessing. By the time we sit down for your free consultation, your starting point is already in front of us, and our whole conversation can go toward the path forward.',
-      'It only takes a few minutes, and it’s the most useful thing you can do before we talk.'
+      'It only takes a few minutes, and it’s the most useful thing you can do before we talk.',
+      'One promise and one kind ask. The promise: when we sit down for your free 20-minute consultation, you’ll leave with your custom juice recipe — a pour built around your colors, yours to keep. The ask: have your intake complete at least 24 hours before we meet, so I can walk in already knowing your story. If it isn’t in by then, the session simply releases and you can rebook whenever you’re ready — no harm done.'
     ]
   },
   'The Energizer': {
@@ -314,7 +316,8 @@ const QUIZ_FOLLOWUPS = {
       'An Energizer’s body is looking for steady energy through the day and strong, resilient defenses, and it’s reaching for the oranges, yellows, and earthy browns to get there. Sweet potato, carrots, and pumpkin. Citrus, pineapple, and yellow peppers. Oats, lentils, and quinoa. These are the foods that build steady fuel, support your immune strength, and soften those afternoon crashes.',
       'If you’d like somewhere to begin today, keep it easy: add one fueling food to your plate. Roasted sweet potato at dinner. A squeeze of fresh citrus over your greens. A warm bowl of oats to start the morning. One small step toward steadier energy.',
       'When you’re ready to go deeper, I’d love to meet you — and the next step is your intake form. Think of your quiz and your intake as a pair. The quiz was a first glance at which colors your body is reaching for. The intake fills in the rest of your story: your rhythms, your history, the way your body has been speaking to you day to day. On their own, each tells me a little. Together, they give us a clear picture of where your energy is asking to be rebuilt, so we’re never guessing. By the time we sit down for your free consultation, your starting point is already in front of us, and our whole conversation can go toward the path forward.',
-      'It only takes a few minutes, and it’s the most useful thing you can do before we talk.'
+      'It only takes a few minutes, and it’s the most useful thing you can do before we talk.',
+      'One promise and one kind ask. The promise: when we sit down for your free 20-minute consultation, you’ll leave with your custom juice recipe — a pour built around your colors, yours to keep. The ask: have your intake complete at least 24 hours before we meet, so I can walk in already knowing your story. If it isn’t in by then, the session simply releases and you can rebook whenever you’re ready — no harm done.'
     ]
   }
 };

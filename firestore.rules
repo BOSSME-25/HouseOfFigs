@@ -219,6 +219,28 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------
+    // /rmi/{autoId} — Request More Information (Entry B, Funnel Logic Map).
+    // Public write-once from the contact page; admins read. RMI leads are
+    // routed to the quiz (R1/R2) — never given a booking link.
+    // -------------------------------------------------------------------
+    match /rmi/{docId} {
+      allow read: if isAdmin();
+      allow update: if isAdmin();   // nudge/dormant markers from functions & admin
+      allow delete: if false;
+      allow create: if validRmiCreate(request.resource.data);
+    }
+
+    function validRmiCreate(d) {
+      return d.keys().hasAll(['name', 'email', 'createdAt'])
+        && d.keys().size() <= 20
+        && isString(d.name, 200)
+        && isEmail(d.email)
+        && isOptionalString(d.get('message', null), 5000)
+        && isString(d.createdAt, 50)
+        && isOptionalString(d.get('referer', null), 500);
+    }
+
+    // -------------------------------------------------------------------
     // Default deny for any other collection
     // -------------------------------------------------------------------
     match /{anything=**} {

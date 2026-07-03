@@ -71,6 +71,7 @@ let postDocs = [];
 let testimonialDocs = [];
 let assessmentDocs = [];
 let planDocs = {};            // intakeId -> plan doc
+let rmiDocs = [];             // Request More Information leads (Entry B)
 let leadMeta = {};          // submissionId ("quiz_x"/"intake_x") -> { status, notes, tags }
 let lastSeenIds = new Set(); // for "new" highlighting on first load
 let firstSnapshot = { quizzes: true, intakes: true };
@@ -222,6 +223,12 @@ function initSubscriptions() {
     renderAssessmentList();
     renderFunnel();
   }, (err) => console.error('plans onSnapshot error:', err));
+
+  // RMI leads (Entry B) — feed the funnel's first stage
+  onSnapshot(collection(db, 'rmi'), (snap) => {
+    rmiDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderFunnel();
+  }, (err) => console.error('rmi onSnapshot error:', err));
 }
 
 function handleNewItems(kind, docs) {
@@ -2174,7 +2181,7 @@ function collectPlanDraft(existing) {
 // open their full detail.
 // ===================================================================
 const FUNNEL_STAGES = [
-  { key: 'quiz', label: 'Quiz leads', hint: 'Took the quiz, no intake yet' },
+  { key: 'quiz', label: 'New leads', hint: 'Quiz taken or info requested — no intake yet' },
   { key: 'prep', label: 'Consult prep', hint: 'Intake in — review prep sheet before the free consult' },
   { key: 'awaitingGd', label: 'Awaiting Going Deeper', hint: 'Consult held — companion form not back yet' },
   { key: 'review', label: 'In review', hint: 'Full picture in — assessment awaiting approval' },
@@ -2199,8 +2206,21 @@ function computeFunnel() {
     if (!em || intakeEmails.has(em) || seenQuiz.has(em)) continue;
     seenQuiz.add(em);
     stages.quiz.push({
-      name: q.name || em, email: em, when: q.emailCapturedAt || q.createdAt,
+      name: (q.name || em) + (q.dormantAt ? ' · dormant' : ''),
+      email: em, when: q.emailCapturedAt || q.createdAt,
       open: () => openDetail('quiz', q.id)
+    });
+  }
+
+  // RMI leads (Entry B) who haven't taken the quiz or submitted an intake.
+  for (const r of rmiDocs) {
+    const em = emailOf(r);
+    if (!em || intakeEmails.has(em) || seenQuiz.has(em)) continue;
+    seenQuiz.add(em);
+    stages.quiz.push({
+      name: (r.name || em) + ' (RMI)' + (r.dormantAt ? ' · dormant' : ''),
+      email: em, when: r.createdAt,
+      open: () => openRmiDetail(r)
     });
   }
 
@@ -2231,6 +2251,21 @@ function computeFunnel() {
     }
   }
   return stages;
+}
+
+function openRmiDetail(r) {
+  let html = `<h2>Message — ${escape(r.name || r.email || 'Unnamed')}</h2>
+    <div class="detail-meta">Received ${formatTime(r.createdAt)}${r.email ? ' &middot; ' + escape(r.email) : ''}</div>
+    <div class="aw-client" style="margin-top:1rem;">${escape(r.message || '(no message)')}</div>
+    <div class="aw-muted" style="margin-top:0.75rem;">
+      ${r.r1SentAt ? 'Quiz invitation sent ' + formatTime(r.r1SentAt) : 'Quiz invitation pending'}
+      ${r.rmiNudgeSentAt ? ' &middot; Nudge sent ' + formatTime(r.rmiNudgeSentAt) : ''}
+      ${r.dormantAt ? ' &middot; Dormant since ' + formatTime(r.dormantAt) : ''}
+    </div>
+    <p class="aw-muted" style="margin-top:0.75rem;">RMI leads are routed to the quiz first — reply personally to their message from bethany@houseoffigs.org.</p>`;
+  modalBodyEl.innerHTML = html;
+  modalEl.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
 }
 
 function renderFunnel() {
