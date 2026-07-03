@@ -483,6 +483,7 @@ const INTAKE_SECTION_MAP = [
       'Past approaches that haven’t worked',
       'How long have you been dealing with this',
       'Energy and motivation right now',
+      'Weekly time available',
       'Weekly time available (1-10)',
       'Best time of day to focus on wellness'
     ]
