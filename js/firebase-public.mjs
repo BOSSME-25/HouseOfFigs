@@ -60,6 +60,13 @@ window.hofFirebase = {
     return ref.id;
   },
 
+  async writeGoingDeeper(intakeId, data) {
+    if (!db) throw new Error('Firestore not initialized');
+    if (!intakeId) throw new Error('intakeId required');
+    // Create-only by rules; keyed to the intake so the pipeline can merge.
+    await setDoc(doc(db, 'goingDeeper', intakeId), data);
+  },
+
   // ---- Public content reads (blog + testimonials) --------------------
   // Only PUBLISHED docs are readable per Firestore rules.
 

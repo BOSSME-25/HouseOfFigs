@@ -19,12 +19,56 @@
  */
 
 const { onDocumentCreated, onDocumentUpdated } = require('firebase-functions/v2/firestore');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
 const Anthropic = require('@anthropic-ai/sdk');
 
+const GOING_DEEPER_URL = 'https://houseoffigs.org/going-deeper.html';
+const INTAKE_URL = 'https://houseoffigs.org/intake.html';
+const BOOKING_URL = 'https://calendly.com/houseoffigscompany/30min';
+
+// Personal-feel formatting for Bethany's follow-up emails (Arizona time).
+function fmtWhen(iso, withTime = true) {
+  if (!iso) return '';
+  const opts = { timeZone: 'America/Phoenix', weekday: 'long', month: 'long', day: 'numeric' };
+  if (withTime) { opts.hour = 'numeric'; opts.minute = '2-digit'; }
+  try { return new Date(iso).toLocaleString('en-US', opts); } catch { return ''; }
+}
+
+// Simple personal email wrapper — deliberately lighter than the branded
+// shells: the post-consult handoff reads as a note from Bethany, not a
+// campaign.
+function personalEmail(paragraphsHtml) {
+  return `<!doctype html>
+<html><body style="margin:0;padding:24px 16px;background:#ffffff;font-family:'Helvetica Neue',Arial,sans-serif;color:#2C2C2C;">
+  <div style="max-width:560px;margin:0 auto;font-size:0.9375rem;line-height:1.7;">
+    ${paragraphsHtml}
+    <p style="margin:24px 0 4px;">Warmly,<br>Bethany</p>
+    <p style="font-size:0.8125rem;color:#897866;margin:0;">House of Figs &middot; <em>Rooted wellness. Sustainable transformation.</em></p>
+  </div>
+</body></html>`;
+}
+
 const { runAssessment } = require('./rooted-engine');
-const { COLOR_VOICE, COLOR_LABELS, LEAK_TERMS } = require('./rooted-data');
+const { COLOR_VOICE, COLOR_LABELS, FOOD_GIFTS, LEAK_TERMS } = require('./rooted-data');
+
+// Consult prep sheet auto-draft (Client Journey briefing, Stage 5).
+// Deterministic from the assessment: loudest color = top priority, second
+// thread noted-not-named, one pre-written food gift. Bethany reviews and
+// edits every field before the call.
+function draftPrepSheet(assessment) {
+  const loudest = assessment.priorities[0] || null;
+  const second = assessment.priorities[1] || null;
+  return {
+    loudestColor: loudest ? loudest.label : '',
+    loudestWhy: loudest ? loudest.why : '',
+    secondThread: second ? second.label : '',
+    foodGift: loudest ? (FOOD_GIFTS[loudest.color] || '') : '',
+    safetyFlags: assessment.haltReasons || [],
+    notes: ''
+  };
+}
 
 const anthropicKey = defineSecret('ANTHROPIC_API_KEY');
 
@@ -156,7 +200,23 @@ THE FIXED FOUR-WEEK ARC (names and focus never change; you write only the per-cl
 ${assessment.weeks.map(w => `Week ${w.week} · ${w.name} — fixed focus: ${w.focus}; this client's colors: ${w.colors.join(' + ')}`).join('\n')}
 
 CONDITION-AWARE ADJUSTMENTS to reflect as gentle plain-language notes (translate; do not name conditions clinically unless the client named them themselves):
-${assessment.conditionAdjustments.map(a => `- ${a.note}`).join('\n') || '(none)'}`;
+${assessment.conditionAdjustments.map(a => `- ${a.note}`).join('\n') || '(none)'}${goingDeeperContext(assessment.goingDeeper)}`;
+}
+
+// Optional enrichment when the Going Deeper companion form has returned.
+function goingDeeperContext(gd) {
+  if (!gd) return '';
+  const audits = Object.keys(gd)
+    .filter(k => k.startsWith('Rainbow audit: '))
+    .map(k => `${k.replace('Rainbow audit: ', '')}: ${gd[k]}`);
+  const lines = [];
+  if (audits.length) lines.push(`What they already eat (Rainbow audit — affirm what's nourished, grow what's rare):\n${audits.join('; ')}`);
+  if (gd['Settling practices']) lines.push(`What helps them settle (use for the wind-down): ${gd['Settling practices']}`);
+  if (gd['Support and grounding']) lines.push(`Support & grounding (people, faith, community): ${gd['Support and grounding']}`);
+  if (gd['Home environment']) lines.push(`Home feels: ${gd['Home environment']}`);
+  if (gd['Meal preparer']) lines.push(`Meals mostly prepared by: ${gd['Meal preparer']}`);
+  if (!lines.length) return '';
+  return `\n\nFROM THEIR GOING DEEPER FORM (weave in naturally — never quote it back as a list):\n${lines.join('\n')}`;
 }
 
 const DRAFT_SYSTEM = `You draft client-facing sections of House of Figs "Rooted Beginning" nourishment plans, in the voice of Bethany Grissum — warm, unhurried, food-forward, faith-respectful, never clinical.
@@ -203,6 +263,18 @@ function registerRootedPipeline({ gmailPassword, makeTransport, emailShell, FROM
         ...assessment,
         intakeId,
         status: assessment.halted ? 'halted' : 'generated',
+        // Stage 5: auto-drafted consult prep sheet (Bethany edits in admin).
+        prepSheet: draftPrepSheet(assessment),
+        // Journey milestones — set by admin buttons and functions as the
+        // client moves through the funnel. Timestamps, null until reached.
+        journey: {
+          consultAt: null,        // scheduled consult datetime (admin-entered)
+          consultHeldAt: null,    // set by "Mark consult held"
+          followUpAt: null,       // scheduled follow-up datetime
+          email1SentAt: null,     // post-consult handoff email
+          email2SentAt: null,     // the single day-3/4 nudge
+          gdReturnedAt: null      // Going Deeper form received
+        },
         createdAt: now,
         updatedAt: now
       });
@@ -279,6 +351,97 @@ function registerRootedPipeline({ gmailPassword, makeTransport, emailShell, FROM
       updatedAt: now
     });
   }
+
+  // -------------------------------------------------------------------
+  // Going Deeper returned (Stage 8): site form + Going Deeper = the
+  // full-intake equivalent. Merge the GD answers into the safety-relevant
+  // intake fields, re-run the engine, refresh the assessment (Bethany
+  // re-reviews — approval resets), and re-draft the plan unless it has
+  // already been sent.
+  // -------------------------------------------------------------------
+  const onGoingDeeperCreated = onDocumentCreated(
+    {
+      document: 'goingDeeper/{docId}',
+      secrets: [gmailPassword, anthropicKey],
+      timeoutSeconds: 300,
+      memory: '512MiB'
+    },
+    async (event) => {
+      const gd = event.data && event.data.data();
+      if (!gd) return;
+      const intakeId = event.params.docId;
+      const db = admin.firestore();
+      const now = new Date().toISOString();
+
+      const intakeSnap = await db.collection('intakes').doc(intakeId).get();
+      if (!intakeSnap.exists) {
+        console.warn(`Going Deeper for unknown intake ${intakeId} — leaving for manual review.`);
+        return;
+      }
+      const intake = intakeSnap.data();
+
+      // Merge GD detail into the fields the safety screen and condition
+      // rules read, so new meds/history are picked up on the re-run.
+      const joinNonEmpty = (...parts) => parts.filter(Boolean).join(' \n ');
+      const merged = { ...intake };
+      merged['Medications and supplements'] = joinNonEmpty(
+        intake['Medications and supplements'],
+        gd['Current medications detail'],
+        gd['Current supplements detail'],
+        gd['Hormone therapy or birth control']
+      );
+      merged['Anything else important'] = joinNonEmpty(
+        intake['Anything else important'],
+        gd['Past surgeries and hospitalizations'],
+        gd['Recent bloodwork detail'],
+        gd['Gut history'],
+        gd['Cycle health detail']
+      );
+
+      const assessment = runAssessment(merged, { formType: 'full' });
+
+      // Preserve Bethany's prep-sheet edits and journey milestones.
+      const prevSnap = await db.collection('assessments').doc(intakeId).get();
+      const prev = prevSnap.exists ? prevSnap.data() : {};
+      const journey = { ...(prev.journey || {}), gdReturnedAt: now };
+
+      await db.collection('assessments').doc(intakeId).set({
+        ...assessment,
+        intakeId,
+        // Full picture arrived — approval resets so Bethany re-reviews.
+        status: assessment.halted ? 'halted' : 'generated',
+        prepSheet: prev.prepSheet || draftPrepSheet(assessment),
+        journey,
+        goingDeeper: gd,          // raw GD answers for the worksheet view
+        gdMergedAt: now,
+        createdAt: prev.createdAt || now,
+        updatedAt: now
+      });
+
+      if (assessment.halted) {
+        const transport = makeTransport();
+        await transport.sendMail({
+          from: `House of Figs <${FROM_ADDRESS}>`,
+          to: NOTIFY_TO.join(', '),
+          subject: `⚠ Going Deeper re-assessment halted — ${assessment.client.name || 'Unnamed'}`,
+          html: emailShell(
+            `Re-assessment HALTED after Going Deeper — <em>${escape(assessment.client.name || 'Unnamed')}</em>`,
+            assessment.haltReasons.map(r => `<div style="margin-bottom:10px;font-size:0.9375rem;color:#2C2C2C;line-height:1.5;">&bull; ${escape(r)}</div>`).join(''),
+            DASHBOARD_URL,
+            'Review in dashboard'
+          )
+        });
+        return;
+      }
+
+      // Re-draft the plan with the complete picture (never touch a sent plan).
+      const planSnap = await db.collection('plans').doc(intakeId).get();
+      if (!planSnap.exists || planSnap.data().status !== 'sent') {
+        assessment.goingDeeper = gd; // enriches the drafting prompt
+        await draftAndStorePlan(assessment, intakeId, db);
+      }
+    }
+  );
 
   // -------------------------------------------------------------------
   // Clear a safety hold: Bethany's clinical judgment is the intended
@@ -440,7 +603,182 @@ function registerRootedPipeline({ gmailPassword, makeTransport, emailShell, FROM
 </body></html>`;
   }
 
-  return { onIntakeAssessment, onHoldCleared, onPlanApproved };
+  // -------------------------------------------------------------------
+  // Post-consult Email One (Stage 7): fires when Bethany marks the consult
+  // held in the admin. Template copy from HOF_PostConsult_FollowUp_Emails,
+  // merged from the prep sheet: goal in their words, the food gift, the
+  // Going Deeper link, return-by (two days before follow-up), follow-up.
+  // -------------------------------------------------------------------
+  const onConsultHeld = onDocumentUpdated(
+    {
+      document: 'assessments/{docId}',
+      secrets: [gmailPassword]
+    },
+    async (event) => {
+      const before = event.data && event.data.before.data();
+      const after = event.data && event.data.after.data();
+      if (!before || !after) return;
+      const bj = (before.journey || {});
+      const aj = (after.journey || {});
+      if (bj.consultHeldAt || !aj.consultHeldAt || aj.email1SentAt) return;
+
+      const intakeId = event.params.docId;
+      const db = admin.firestore();
+      const email = after.client && after.client.email;
+      const firstName = String((after.client && (after.client.preferredName || after.client.name)) || '')
+        .trim().split(/\s+/)[0] || 'there';
+      const goal = (after.client && (after.client.goals || after.client.chiefComplaint)) || 'to feel like yourself again';
+      const foodGift = (after.prepSheet && after.prepSheet.foodGift) || 'the one small shift we talked about';
+      const gdLink = `${GOING_DEEPER_URL}?id=${encodeURIComponent(intakeId)}`;
+      const followUp = aj.followUpAt ? fmtWhen(aj.followUpAt) : '';
+      let returnBy = '';
+      if (aj.followUpAt) {
+        const d = new Date(aj.followUpAt);
+        d.setDate(d.getDate() - 2);
+        returnBy = fmtWhen(d.toISOString(), false);
+      }
+
+      if (!email) {
+        await db.collection('assessments').doc(intakeId).set({
+          journey: { ...aj, email1Error: 'No client email on record.' }
+        }, { merge: true });
+        return;
+      }
+
+      const e = escape;
+      const html = personalEmail(`
+        <p>Hi ${e(firstName)},</p>
+        <p>Thank you for the conversation today — and for the honesty you brought to it. What stayed with me is that you want ${e(goal)}, and that's exactly what we'll build toward.</p>
+        <p>Before anything else, the one thing from our call: <strong>${e(foodGift)}</strong>. Small, but it starts feeding exactly the system that's been asking. Notice what shifts — even a little.</p>
+        <p>Your next step is the Going Deeper form: <a href="${e(gdLink)}" style="color:#8B5E5A;">${e(gdLink)}</a>. It takes about fifteen to twenty minutes and completes the picture your first intake began — so the thirty-day plan I build fits the life you're actually living, not a template.${returnBy ? ` If you can, have it back to me by <strong>${e(returnBy)}</strong>, so I have time to sit with it properly before we talk.` : ''}</p>
+        ${followUp ? `<p>We're on the calendar for <strong>${e(followUp)}</strong>. I'm looking forward to it.</p>` : ''}
+      `);
+
+      const transport = makeTransport();
+      await transport.sendMail({
+        from: `Bethany Grissum, House of Figs <${FROM_ADDRESS}>`,
+        to: email,
+        replyTo: FROM_ADDRESS,
+        subject: `Your next step, ${firstName} — and the one thing to try this week`,
+        html
+      });
+
+      await db.collection('assessments').doc(intakeId).set({
+        journey: { ...aj, email1SentAt: new Date().toISOString() },
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+    }
+  );
+
+  // -------------------------------------------------------------------
+  // Daily nudges, 9am Arizona. Two jobs, both single-shot per person:
+  //  1. Email Two — the ONE gentle Going Deeper nudge, day 3–4 after
+  //     Email One, only if the form hasn't returned. One nudge only; the
+  //     follow-up call happens either way (the docx rule).
+  //  2. Day-3 quiz nudge — quiz leads with no intake after 3 days.
+  // -------------------------------------------------------------------
+  const dailyNudges = onSchedule(
+    {
+      schedule: '0 16 * * *', // 16:00 UTC = 9:00 AM Arizona (no DST)
+      timeZone: 'Etc/UTC',
+      secrets: [gmailPassword]
+    },
+    async () => {
+      const db = admin.firestore();
+      const now = Date.now();
+      const DAY = 24 * 60 * 60 * 1000;
+      const transport = makeTransport();
+      const e = escape;
+
+      // ---- Email Two: Going Deeper nudge ----
+      const assessments = await db.collection('assessments').get();
+      for (const snap of assessments.docs) {
+        const a = snap.data();
+        const j = a.journey || {};
+        if (!j.email1SentAt || j.email2SentAt || j.gdReturnedAt) continue;
+        const age = now - Date.parse(j.email1SentAt);
+        if (isNaN(age) || age < 3 * DAY || age > 10 * DAY) continue;
+        const email = a.client && a.client.email;
+        if (!email) continue;
+
+        const firstName = String((a.client.preferredName || a.client.name) || '').trim().split(/\s+/)[0] || 'there';
+        const foodGift = (a.prepSheet && a.prepSheet.foodGift) || 'that one small shift';
+        const gdLink = `${GOING_DEEPER_URL}?id=${encodeURIComponent(snap.id)}`;
+        const followUp = j.followUpAt ? fmtWhen(j.followUpAt, false) : '';
+
+        const html = personalEmail(`
+          <p>Hi ${e(firstName)},</p>
+          <p>Just a soft note — no rush behind it. The Going Deeper form is here whenever you have a quiet fifteen minutes: <a href="${e(gdLink)}" style="color:#8B5E5A;">${e(gdLink)}</a>.</p>
+          <p>${followUp ? `The only reason I ask for it ahead of ${e(followUp)} is so I can read it with care before we talk, instead of during. If the date needs to move to make room, that's easy — just say the word.` : 'The only reason I ask for it ahead of our next conversation is so I can read it with care before we talk, instead of during.'}</p>
+          <p>And however the week is going — keep at ${e(foodGift)}. That one small thing is already work worth doing.</p>
+        `);
+
+        try {
+          await transport.sendMail({
+            from: `Bethany Grissum, House of Figs <${FROM_ADDRESS}>`,
+            to: email,
+            replyTo: FROM_ADDRESS,
+            subject: `Whenever you're ready, ${firstName}`,
+            html
+          });
+          await db.collection('assessments').doc(snap.id).set({
+            journey: { ...j, email2SentAt: new Date().toISOString() }
+          }, { merge: true });
+        } catch (err) {
+          console.error(`Email Two failed for ${snap.id}:`, err);
+        }
+      }
+
+      // ---- Day-3 quiz nudge ----
+      const [quizzes, intakes] = await Promise.all([
+        db.collection('quizzes').get(),
+        db.collection('intakes').get()
+      ]);
+      const intakeEmails = new Set(
+        intakes.docs.map(d => String(d.data().email || d.data().Email || '').toLowerCase().trim()).filter(Boolean)
+      );
+      const nudgedEmails = new Set();
+
+      for (const snap of quizzes.docs) {
+        const q = snap.data();
+        const email = String(q.email || '').toLowerCase().trim();
+        if (!email || q.quizNudgeSentAt || intakeEmails.has(email) || nudgedEmails.has(email)) continue;
+        const captured = Date.parse(q.emailCapturedAt || q.createdAt || '');
+        const age = now - captured;
+        if (isNaN(age) || age < 3 * DAY || age > 10 * DAY) continue;
+
+        const firstName = String(q.name || '').trim().split(/\s+/)[0] || 'there';
+        const profile = (q.profile && q.profile.title) || '';
+
+        const html = personalEmail(`
+          <p>Hi ${e(firstName)},</p>
+          <p>A few days ago the quiz showed you something real — ${profile ? `you're <strong>${e(profile.replace(/^The /, 'a '))}</strong>, and ` : ''}your body has been asking for a particular kind of support. That doesn't go away on its own, but it does respond — often faster than people expect.</p>
+          <p>Whenever you're ready, the next step is a short intake and a free consultation — that's where we look at your whole picture together and find your clearest place to begin.</p>
+          <p>Complete your intake: <a href="${e(INTAKE_URL)}" style="color:#8B5E5A;">${e(INTAKE_URL)}</a><br>
+          Book your free consultation: <a href="${e(BOOKING_URL)}" style="color:#8B5E5A;">${e(BOOKING_URL)}</a></p>
+          <p>No rush, and no pressure — just an open door.</p>
+        `);
+
+        try {
+          await transport.sendMail({
+            from: `Bethany Grissum, House of Figs <${FROM_ADDRESS}>`,
+            to: email,
+            replyTo: FROM_ADDRESS,
+            subject: `Whenever you're ready, ${firstName}`,
+            html
+          });
+          nudgedEmails.add(email);
+          await db.collection('quizzes').doc(snap.id).set({
+            quizNudgeSentAt: new Date().toISOString()
+          }, { merge: true });
+        } catch (err) {
+          console.error(`Quiz nudge failed for ${snap.id}:`, err);
+        }
+      }
+    }
+  );
+
+  return { onIntakeAssessment, onGoingDeeperCreated, onHoldCleared, onPlanApproved, onConsultHeld, dailyNudges };
 }
 
 module.exports = { registerRootedPipeline, leakCheck, planText, PLAN_SCHEMA, buildDraftPrompt, DRAFT_SYSTEM };

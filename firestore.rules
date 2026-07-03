@@ -198,6 +198,27 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------
+    // /goingDeeper/{intakeId} — the Stage-8 companion intake, submitted by
+    // the client from the personal link in Bethany's post-consult email.
+    // Write-once from the public site (same posture as /intakes); admins
+    // read. The doc id ties it to the original intake for the merge.
+    // -------------------------------------------------------------------
+    match /goingDeeper/{intakeId} {
+      allow read: if isAdmin();
+      allow update, delete: if false;
+      allow create: if validGoingDeeperCreate(request.resource.data);
+    }
+
+    function validGoingDeeperCreate(d) {
+      return d.keys().size() <= 200
+        && d.keys().hasAll(['Full name', 'intakeId', 'createdAt'])
+        && isString(d['Full name'], 200)
+        && isString(d.intakeId, 200)
+        && isString(d.createdAt, 50)
+        && d.size() < 1048576;  // < 1 MB
+    }
+
+    // -------------------------------------------------------------------
     // Default deny for any other collection
     // -------------------------------------------------------------------
     match /{anything=**} {

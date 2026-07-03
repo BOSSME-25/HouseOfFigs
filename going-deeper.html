@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-4PVT50086K"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-4PVT50086K');
+  </script>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Going Deeper | House of Figs</title>
+  <meta name="description" content="Your companion intake — completes the picture your first intake began.">
+  <meta name="robots" content="noindex, nofollow">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .gd-wrap { max-width: 760px; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
+    .gd-eyebrow { font-size: 0.75rem; letter-spacing: 0.14em; text-transform: uppercase; color: #6B7F5E; text-align: center; }
+    .gd-title { font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(2rem, 5vw, 2.75rem); color: #4A3728; text-align: center; margin: 0.25rem 0 0.4rem; }
+    .gd-tagline { font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; color: #8B5E5A; text-align: center; margin-bottom: 2rem; }
+    .gd-note { background: #faf6ef; border: 1px solid #ece2cf; border-radius: 10px; padding: 1.25rem 1.4rem; font-size: 0.9375rem; line-height: 1.7; color: #2C2C2C; margin-bottom: 2rem; }
+    .gd-section { margin: 2.25rem 0; }
+    .gd-section-eyebrow { font-size: 0.6875rem; letter-spacing: 0.12em; text-transform: uppercase; color: #6B7F5E; }
+    .gd-section h2 { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1.5rem; color: #4A3728; margin: 0.15rem 0 0.35rem; }
+    .gd-section-sub { font-size: 0.875rem; color: #897866; font-style: italic; margin-bottom: 1.25rem; }
+    .field { margin-bottom: 1.25rem; }
+    .field-label { display: block; font-size: 0.875rem; font-weight: 600; color: #4A3728; margin-bottom: 0.4rem; line-height: 1.5; }
+    .field input[type="text"], .field textarea, .field select {
+      width: 100%; box-sizing: border-box; font-family: 'Inter', sans-serif; font-size: 0.9375rem;
+      color: #2C2C2C; padding: 0.65rem 0.75rem; border: 1px solid #ece2cf; border-radius: 8px; background: #fff;
+    }
+    .field textarea { min-height: 84px; resize: vertical; line-height: 1.55; }
+    .field input:focus, .field textarea:focus { outline: none; border-color: #8B5E5A; box-shadow: 0 0 0 2px rgba(139,94,90,0.12); }
+    .check-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 0.5rem; margin-top: 0.5rem; }
+    .check-group label {
+      display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.55rem 0.85rem; background: #faf6ef;
+      border: 1px solid #ece2cf; border-radius: 8px; font-size: 0.875rem; line-height: 1.45; color: #2C2C2C; cursor: pointer;
+    }
+    .check-group input { margin-top: 2px; flex-shrink: 0; }
+    .scale-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.6rem; flex-wrap: wrap; }
+    .scale-row .field-label { margin: 0; min-width: 180px; font-weight: 500; }
+    .scale-row select { width: auto; padding: 0.45rem 0.6rem; border: 1px solid #ece2cf; border-radius: 8px; font-family: 'Inter', sans-serif; }
+    .audit-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    .audit-table th { text-align: center; font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.05em; color: #6B7F5E; padding: 0.5rem 0.4rem; border-bottom: 1px solid #ece2cf; }
+    .audit-table th:first-child { text-align: left; }
+    .audit-table td { padding: 0.55rem 0.4rem; border-bottom: 1px solid #f2ebdf; text-align: center; }
+    .audit-table td:first-child { text-align: left; color: #2C2C2C; }
+    .audit-foods { display: block; font-size: 0.75rem; color: #897866; font-style: italic; }
+    .gd-submit { text-align: center; margin-top: 2.5rem; }
+    .gd-submit button {
+      background: #8B5E5A; color: #fff; border: none; border-radius: 8px; padding: 0.9rem 2.2rem;
+      font-family: 'Inter', sans-serif; font-size: 1rem; font-weight: 600; cursor: pointer;
+    }
+    .gd-submit button:disabled { opacity: 0.6; cursor: default; }
+    .gd-status { margin-top: 0.75rem; font-size: 0.875rem; color: #a84b42; min-height: 1.2em; }
+    .gd-thanks { text-align: center; padding: 3rem 1rem; display: none; }
+    .gd-thanks h2 { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 2rem; color: #4A3728; }
+    .gd-missing { text-align: center; padding: 3rem 1rem; display: none; font-size: 0.9375rem; color: #2C2C2C; line-height: 1.7; }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="site-logo">
+        <img src="images/logo.png" alt="House of Figs" class="logo-img">
+      </a>
+    </div>
+  </header>
+
+  <main>
+    <div class="gd-wrap">
+      <p class="gd-eyebrow">Your companion intake</p>
+      <h1 class="gd-title">Going Deeper</h1>
+      <p class="gd-tagline">Rooted wellness. Sustainable transformation.</p>
+
+      <div class="gd-missing" id="gd-missing">
+        <p>This form works from the personal link in your email from Bethany.<br>
+        Please open it from that email — or reply to her and she&rsquo;ll send a fresh link.</p>
+      </div>
+
+      <form id="gd-form" novalidate>
+        <div class="gd-note">
+          <strong>A note before you begin.</strong> You&rsquo;ve already shared the heart of your story — this form simply completes the picture. It goes a little deeper into your history, your digestion, your rhythms, and what&rsquo;s already on your plate, so the thirty-day plan we build together fits the life you are actually living.<br><br>
+          There are no wrong answers, and nothing here is graded. If a question doesn&rsquo;t apply, skip it. <em>Time to complete: about 15&ndash;20 minutes.</em>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="gd-name">Full name</label>
+          <input type="text" id="gd-name" name="Full name" required autocomplete="name">
+        </div>
+
+        <!-- SECTION 1 -->
+        <div class="gd-section">
+          <div class="gd-section-eyebrow">Section 1</div>
+          <h2>Your health history, a little deeper</h2>
+          <div class="field">
+            <label class="field-label">Past surgeries, hospitalizations, or significant injuries (with approximate dates)</label>
+            <textarea name="Past surgeries and hospitalizations"></textarea>
+          </div>
+          <div class="field">
+            <label class="field-label">Current medications — name, dosage, and how long you&rsquo;ve been taking each</label>
+            <textarea name="Current medications detail"></textarea>
+          </div>
+          <div class="field">
+            <label class="field-label">Current supplements — name, dosage, and brand if known</label>
+            <textarea name="Current supplements detail"></textarea>
+          </div>
+          <div class="field">
+            <label class="field-label">Any current hormone therapy, birth control, or fertility treatments</label>
+            <textarea name="Hormone therapy or birth control"></textarea>
+          </div>
+          <div class="field">
+            <label class="field-label">Any bloodwork in the past 12 months? List what you remember — or simply mention that you&rsquo;ll share copies</label>
+            <textarea name="Recent bloodwork detail"></textarea>
+          </div>
+        </div>
+
+        <!-- SECTION 2 -->
+        <div class="gd-section">
+          <div class="gd-section-eyebrow">Section 2</div>
+          <h2>Digestion &amp; elimination</h2>
+          <p class="gd-section-sub">The gut is where nourishment becomes life — so we give it its own page.</p>
+          <div class="field">
+            <label class="field-label">Bowel movements per day</label>
+            <input type="text" name="GD bowel movements per day">
+          </div>
+          <div class="field">
+            <label class="field-label">Typical form (soft / firm / loose / pellet-like)</label>
+            <input type="text" name="GD stool form">
+          </div>
+          <div class="field">
+            <label class="field-label">Do you strain, feel incomplete, or experience urgency? Any blood, mucus, or undigested food?</label>
+            <textarea name="Elimination concerns"></textarea>
+          </div>
+          <div class="field">
+            <label class="field-label">Check anything you experience regularly</label>
+            <div class="check-group">
+              <label><input type="checkbox" name="Digestive symptoms" value="Bloating after meals"> Bloating after meals</label>
+              <label><input type="checkbox" name="Digestive symptoms" value="Feeling full too quickly"> Feeling full too quickly</label>
+              <label><input type="checkbox" name="Digestive symptoms" value="Bloating all day"> Bloating all day</label>
+              <label><input type="checkbox" name="Digestive symptoms" value="Feeling hungry too soon after meals"> Feeling hungry too soon after meals</label>
+              <label><input type="checkbox" name="Digestive symptoms" value="Gas or belching"> Gas or belching</label>
+              <label><input type="checkbox" name="Digestive symptoms" value="Constipation"> Constipation</label>
+              <label><input type="checkbox" name="Digestive symptoms" value="Heartburn or reflux"> Heartburn or reflux</label>
+              <label><input type="checkbox" name="Digestive symptoms" value="Diarrhea"> Diarrhea</label>
+              <label><input type="checkbox" name="Digestive symptoms" value="Nausea after meals"> Nausea after meals</label>
+              <label><input type="checkbox" name="Digestive symptoms" value="Alternating constipation and diarrhea"> Alternating constipation &amp; diarrhea</label>
+              <label><input type="checkbox" name="Digestive symptoms" value="Stomach pain or cramping"> Stomach pain or cramping</label>
+              <label><input type="checkbox" name="Digestive symptoms" value="Food sensitivities"> Food sensitivities</label>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label">Which specific foods trigger discomfort? And how do you typically feel 30 minutes after eating — and 2 hours after?</label>
+            <textarea name="Food triggers and post-meal feelings"></textarea>
+          </div>
+          <div class="field">
+            <label class="field-label">Any history of food poisoning, parasites, H. pylori, or long antibiotic courses?</label>
+            <textarea name="Gut history"></textarea>
+          </div>
+        </div>
+
+        <!-- SECTION 3 -->
+        <div class="gd-section">
+          <div class="gd-section-eyebrow">Section 3</div>
+          <h2>Energy, cravings &amp; cycles</h2>
+          <p class="gd-section-sub">Where does your energy sit at each point of the day? (1 = running on empty &middot; 10 = fully alive)</p>
+          <div class="scale-row"><span class="field-label">Morning, on waking</span><select name="Energy: morning"><option value=""></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option></select></div>
+          <div class="scale-row"><span class="field-label">Mid-morning (10 am)</span><select name="Energy: mid-morning"><option value=""></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option></select></div>
+          <div class="scale-row"><span class="field-label">Afternoon (2–4 pm)</span><select name="Energy: afternoon"><option value=""></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option></select></div>
+          <div class="scale-row"><span class="field-label">Evening (7–9 pm)</span><select name="Energy: evening"><option value=""></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option></select></div>
+
+          <div class="field" style="margin-top:1.25rem;">
+            <label class="field-label">Check any patterns that sound like you</label>
+            <div class="check-group">
+              <label><input type="checkbox" name="Craving patterns" value="Intense sugar cravings"> Intense sugar cravings</label>
+              <label><input type="checkbox" name="Craving patterns" value="No hunger in the morning"> No hunger in the morning</label>
+              <label><input type="checkbox" name="Craving patterns" value="Salt cravings"> Salt cravings</label>
+              <label><input type="checkbox" name="Craving patterns" value="Ravenous by mid-morning"> Ravenous by mid-morning</label>
+              <label><input type="checkbox" name="Craving patterns" value="Carb cravings (bread, pasta)"> Carb cravings (bread, pasta)</label>
+              <label><input type="checkbox" name="Craving patterns" value="Difficulty feeling full"> Difficulty feeling full</label>
+              <label><input type="checkbox" name="Craving patterns" value="Crave caffeine to function"> Crave caffeine to function</label>
+              <label><input type="checkbox" name="Craving patterns" value="Skip meals without noticing"> Skip meals without noticing</label>
+              <label><input type="checkbox" name="Craving patterns" value="Crave food late at night"> Crave food late at night</label>
+              <label><input type="checkbox" name="Craving patterns" value="Emotional eating patterns"> Emotional eating patterns</label>
+              <label><input type="checkbox" name="Craving patterns" value="Get hangry easily"> Get &ldquo;hangry&rdquo; easily</label>
+              <label><input type="checkbox" name="Craving patterns" value="Rarely feel hungry"> Rarely feel hungry</label>
+            </div>
+          </div>
+
+          <p class="gd-section-sub" style="margin-top:1.5rem;">For menstruating clients — please skip if not applicable.</p>
+          <div class="field"><label class="field-label">Age of first period</label><input type="text" name="Age of first period"></div>
+          <div class="field"><label class="field-label">Typical cycle length</label><input type="text" name="Typical cycle length"></div>
+          <div class="field"><label class="field-label">Period length (days)</label><input type="text" name="Period length"></div>
+          <div class="field"><label class="field-label">Flow (heavy / moderate / light)</label><input type="text" name="Flow"></div>
+          <div class="field"><label class="field-label">Date of last period</label><input type="text" name="Date of last period"></div>
+          <div class="field">
+            <label class="field-label">Describe PMS symptoms, any cycle irregularities or recent changes, and any history of pregnancy, miscarriage, or fertility concerns</label>
+            <textarea name="Cycle health detail"></textarea>
+          </div>
+
+          <div class="field">
+            <label class="field-label">Temperature &amp; thyroid — check any that apply</label>
+            <div class="check-group">
+              <label><input type="checkbox" name="Temperature and thyroid" value="Feel cold often (hands, feet, nose)"> Feel cold often (hands, feet, nose)</label>
+              <label><input type="checkbox" name="Temperature and thyroid" value="Hair loss or changes in texture"> Hair loss or changes in texture</label>
+              <label><input type="checkbox" name="Temperature and thyroid" value="Run hot or sweat easily"> Run hot or sweat easily</label>
+              <label><input type="checkbox" name="Temperature and thyroid" value="Unexplained weight changes"> Unexplained weight changes</label>
+              <label><input type="checkbox" name="Temperature and thyroid" value="Dry skin or thinning outer eyebrows"> Dry skin or thinning outer eyebrows</label>
+              <label><input type="checkbox" name="Temperature and thyroid" value="Hoarseness or throat fullness"> Hoarseness or throat fullness</label>
+              <label><input type="checkbox" name="Temperature and thyroid" value="Morning temperature below 97.8F"> Morning temperature below 97.8&deg;F</label>
+              <label><input type="checkbox" name="Temperature and thyroid" value="Swelling in face, hands, or legs"> Swelling in face, hands, or legs</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 4 -->
+        <div class="gd-section">
+          <div class="gd-section-eyebrow">Section 4</div>
+          <h2>Sleep &amp; your nervous system</h2>
+          <div class="field"><label class="field-label">Average hours of sleep</label><input type="text" name="GD average hours of sleep"></div>
+          <div class="field"><label class="field-label">Typical bedtime / wake time</label><input type="text" name="Bedtime and wake time"></div>
+          <div class="field"><label class="field-label">Do you wake rested?</label><input type="text" name="GD wake rested"></div>
+          <div class="field">
+            <label class="field-label">Check anything that happens regularly</label>
+            <div class="check-group">
+              <label><input type="checkbox" name="Sleep and nervous system" value="Difficulty falling asleep"> Difficulty falling asleep</label>
+              <label><input type="checkbox" name="Sleep and nervous system" value="Racing thoughts at bedtime"> Racing thoughts at bedtime</label>
+              <label><input type="checkbox" name="Sleep and nervous system" value="Wake multiple times per night"> Wake multiple times per night</label>
+              <label><input type="checkbox" name="Sleep and nervous system" value="Grind teeth or clench jaw"> Grind teeth or clench jaw</label>
+              <label><input type="checkbox" name="Sleep and nervous system" value="Night sweats"> Night sweats</label>
+              <label><input type="checkbox" name="Sleep and nervous system" value="Vivid dreams or nightmares"> Vivid dreams or nightmares</label>
+              <label><input type="checkbox" name="Sleep and nervous system" value="Feel groggy upon waking"> Feel groggy upon waking</label>
+              <label><input type="checkbox" name="Sleep and nervous system" value="Snore or suspected sleep apnea"> Snore or suspected sleep apnea</label>
+              <label><input type="checkbox" name="Sleep and nervous system" value="Use sleep aids or melatonin"> Use sleep aids or melatonin</label>
+              <label><input type="checkbox" name="Sleep and nervous system" value="Energy crashes require naps"> Energy crashes require naps</label>
+              <label><input type="checkbox" name="Sleep and nervous system" value="Startle easily"> Startle easily</label>
+              <label><input type="checkbox" name="Sleep and nervous system" value="Heart palpitations"> Heart palpitations</label>
+              <label><input type="checkbox" name="Sleep and nervous system" value="Hold tension in shoulders, jaw, or gut"> Hold tension in shoulders, jaw, or gut</label>
+              <label><input type="checkbox" name="Sleep and nervous system" value="Panic or overwhelm episodes"> Panic or overwhelm episodes</label>
+              <label><input type="checkbox" name="Sleep and nervous system" value="Feel emotionally numb or flat"> Feel emotionally numb or flat</label>
+              <label><input type="checkbox" name="Sleep and nervous system" value="Difficulty relaxing without substances"> Difficulty relaxing without substances</label>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label">What practices, if any, help you settle — breath, prayer, walking, music, something else?</label>
+            <textarea name="Settling practices"></textarea>
+          </div>
+        </div>
+
+        <!-- SECTION 5 -->
+        <div class="gd-section">
+          <div class="gd-section-eyebrow">Section 5</div>
+          <h2>Your Rainbow audit</h2>
+          <p class="gd-section-sub">For each color family, mark how often you currently eat foods from that group. This shows us which of your body&rsquo;s systems are already being nourished — and where there&rsquo;s room to grow.</p>
+          <table class="audit-table" id="audit-table">
+            <thead><tr><th>Color family</th><th>Rarely / never</th><th>1&ndash;2&times; per week</th><th>3&ndash;5&times; per week</th><th>Daily</th></tr></thead>
+            <tbody>
+              <!-- rows injected by script -->
+            </tbody>
+          </table>
+          <div class="field" style="margin-top:1.25rem;"><label class="field-label">Daily water intake (oz or cups)</label><input type="text" name="GD daily water intake"></div>
+          <div class="field"><label class="field-label">Daily caffeine (type, amount, timing)</label><input type="text" name="GD daily caffeine"></div>
+          <div class="field"><label class="field-label">Alcohol (type &amp; frequency)</label><input type="text" name="GD alcohol"></div>
+          <div class="field"><label class="field-label">Soda, juice, or sweetened drinks</label><input type="text" name="Sweetened drinks"></div>
+        </div>
+
+        <!-- SECTION 6 -->
+        <div class="gd-section">
+          <div class="gd-section-eyebrow">Section 6</div>
+          <h2>Movement, home &amp; support</h2>
+          <div class="field">
+            <label class="field-label">Describe your current movement or exercise routine — and how you feel during and after it. Any pain, fatigue, or avoidance?</label>
+            <textarea name="GD movement routine"></textarea>
+          </div>
+          <div class="field"><label class="field-label">Average daily step count (if tracked)</label><input type="text" name="Daily step count"></div>
+          <div class="field"><label class="field-label">Who prepares most of your meals?</label><input type="text" name="Meal preparer"></div>
+          <div class="field">
+            <label class="field-label">Who do you live with, and how does home feel most days — calm, chaotic, supportive, draining?</label>
+            <textarea name="Home environment"></textarea>
+          </div>
+          <div class="field">
+            <label class="field-label">Any exposures worth noting — mold history, chemicals at work, plastics, unfiltered water</label>
+            <textarea name="Environmental exposures"></textarea>
+          </div>
+          <div class="field">
+            <label class="field-label">Who in your life reinforces your wellness goals — and who challenges them? Any spiritual, community, or faith practices that ground you?</label>
+            <textarea name="Support and grounding"></textarea>
+          </div>
+        </div>
+
+        <div class="gd-submit">
+          <button type="submit" id="gd-submit-btn">Send it back to Bethany &rarr;</button>
+          <p class="gd-status" id="gd-status"></p>
+        </div>
+      </form>
+
+      <div class="gd-thanks" id="gd-thanks">
+        <h2>Thank you for trusting us with the fuller picture.</h2>
+        <p style="font-size:0.9375rem;color:#2C2C2C;line-height:1.7;">Bethany will sit with all of it before you talk — so your next conversation is about you, and the way forward.<br><br>If you have recent labs to share, simply reply to her email with copies attached.</p>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="js/firebase-public.mjs"></script>
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var intakeId = (params.get('id') || '').trim();
+      var form = document.getElementById('gd-form');
+
+      if (!intakeId || !/^[A-Za-z0-9_-]{4,200}$/.test(intakeId)) {
+        form.style.display = 'none';
+        document.getElementById('gd-missing').style.display = 'block';
+        return;
+      }
+
+      // Build the Rainbow audit rows
+      var AUDIT = [
+        ['Red', 'tomatoes, watermelon, tart cherries'],
+        ['Orange', 'sweet potato, carrots, pumpkin, turmeric'],
+        ['Yellow', 'lemon, papaya, pineapple'],
+        ['Green', 'spinach, kale, collards, chard'],
+        ['Green-White', 'broccoli, cabbage, Brussels sprouts'],
+        ['White', 'garlic, onions, leeks, asparagus'],
+        ['Blue', 'blueberries, blackberries, plums'],
+        ['Purple', 'beets, red cabbage, figs, eggplant'],
+        ['Brown', 'lentils, oats, beans, quinoa, flax']
+      ];
+      var FREQS = ['Rarely / never', '1-2x per week', '3-5x per week', 'Daily'];
+      var tbody = document.querySelector('#audit-table tbody');
+      tbody.innerHTML = AUDIT.map(function (row) {
+        var cells = FREQS.map(function (f) {
+          return '<td><input type="radio" name="Rainbow audit: ' + row[0] + '" value="' + f + '"></td>';
+        }).join('');
+        return '<tr><td>' + row[0] + '<span class="audit-foods">' + row[1] + '</span></td>' + cells + '</tr>';
+      }).join('');
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var statusEl = document.getElementById('gd-status');
+        var btn = document.getElementById('gd-submit-btn');
+        var name = document.getElementById('gd-name').value.trim();
+        if (!name) { statusEl.textContent = 'Please add your full name.'; return; }
+
+        var fd = new FormData(form);
+        var payload = {};
+        fd.forEach(function (value, key) {
+          if (value === '' || value == null) return;
+          if (payload[key] !== undefined) {
+            if (!Array.isArray(payload[key])) payload[key] = [payload[key]];
+            payload[key].push(value);
+          } else {
+            payload[key] = value;
+          }
+        });
+        payload.intakeId = intakeId;
+        payload.createdAt = new Date().toISOString();
+
+        btn.disabled = true;
+        btn.textContent = 'Sending…';
+        statusEl.textContent = '';
+
+        function submit() {
+          window.hofFirebase.writeGoingDeeper(intakeId, payload).then(function () {
+            form.style.display = 'none';
+            document.getElementById('gd-thanks').style.display = 'block';
+            window.scrollTo(0, 0);
+            if (typeof gtag === 'function') gtag('event', 'going_deeper_submitted');
+          }).catch(function (err) {
+            console.warn('Going Deeper submit failed:', err);
+            btn.disabled = false;
+            btn.textContent = 'Send it back to Bethany →';
+            statusEl.textContent = 'Something went wrong. Please try again, or email bethany@houseoffigs.org.';
+          });
+        }
+        if (window.hofFirebase) submit();
+        else window.addEventListener('hofFirebaseReady', submit, { once: true });
+      });
+    })();
+  </script>
+</body>
+</html>

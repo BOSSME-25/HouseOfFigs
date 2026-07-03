@@ -958,12 +958,12 @@ html, body {
 /* Client journey funnel */
 .funnel-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 0.75rem;
   margin-bottom: 2rem;
 }
 @media (max-width: 1000px) {
-  .funnel-grid { grid-template-columns: repeat(3, 1fr); }
+  .funnel-grid { grid-template-columns: repeat(2, 1fr); }
 }
 .funnel-card {
   position: relative;

@@ -268,6 +268,21 @@ const COLOR_VOICE = {
   }
 };
 
+// ---- The one food gift per color (Consult Talking Track) --------------
+// Pre-written suggestions for the prep sheet — one small, genuinely
+// useful shift tied to the loudest color. Bethany edits before the call.
+const FOOD_GIFTS = {
+  red: 'a small bowl of tart cherries alongside breakfast, most days this week',
+  orange: 'roasted sweet potato with dinner a few nights this week',
+  yellow: 'warm water with fresh lemon (zest and all) to start the morning',
+  green: 'a generous handful of spinach blended into a morning glass, most days this week',
+  greenwhite: 'a handful of broccoli or shredded cabbage added to one meal a day',
+  white: 'cooked onions or garlic folded into dinner most nights this week',
+  blue: 'a small handful of wild blueberries with breakfast, most days this week',
+  purple: 'roasted beets alongside one meal, a few times this week',
+  brown: 'a warm bowl of oats or a spoonful of lentils at one meal a day'
+};
+
 // ---- The fixed 30-day arc (Brief Q4) ----------------------------------
 const WEEK_THEMES = [
   { week: 1, name: 'Roots', focus: 'Hydration + a real morning meal' },
@@ -372,6 +387,7 @@ module.exports = {
   PATTERNS,
   POUR_MAP,
   COLOR_VOICE,
+  FOOD_GIFTS,
   WEEK_THEMES,
   CONDITION_RULES,
   RED_FLAG_SYMPTOMS,

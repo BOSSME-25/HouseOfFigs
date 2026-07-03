@@ -1646,7 +1646,7 @@ const PLAN_STATUS_LABELS = {
   draft_failed: ['Draft failed', 's-halted'],
   leak_blocked: ['Leak blocked', 's-halted'],
   draft: ['In review', 's-draft'],
-  ready: ['Ready for meeting', 's-ready'],
+  ready: ['Ready for follow-up', 's-ready'],
   approved: ['Sending plan…', 's-ready'],
   sent: ['Plan sent', 's-sent'],
   send_failed: ['Send failed', 's-halted']
@@ -1740,7 +1740,166 @@ function worksheetHtml(a) {
     html += '<div class="aw-section"><h3>Condition adjustments</h3>' +
       a.conditionAdjustments.map(x => `<div class="aw-item">• ${escape(x.note)}</div>`).join('') + '</div>';
   }
+
+  // Going Deeper answers (Stage 8), when the companion form has returned.
+  if (a.goingDeeper) {
+    const gd = a.goingDeeper;
+    const skip = new Set(['intakeId', 'createdAt', 'Full name']);
+    html += `<div class="aw-section"><h3>Going Deeper — companion form${a.gdMergedAt ? ` <span class="aw-muted">(returned ${formatTime(a.gdMergedAt)})</span>` : ''}</h3>`;
+    for (const key of Object.keys(gd)) {
+      if (skip.has(key)) continue;
+      const v = gd[key];
+      const val = Array.isArray(v) ? v.join('; ') : String(v);
+      if (!val) continue;
+      html += `<div class="aw-item"><strong>${escape(key)}:</strong> ${escape(val)}</div>`;
+    }
+    html += '</div>';
+  }
   return html;
+}
+
+// ===================================================================
+// Consult prep sheet + journey controls (Stages 5–8)
+// ===================================================================
+function toLocalInput(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d)) return '';
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function journeyLine(j) {
+  const bits = [];
+  if (j.consultAt) bits.push(`Consult scheduled ${formatTime(j.consultAt)}`);
+  if (j.consultHeldAt) bits.push(`Consult held ${formatTime(j.consultHeldAt)}`);
+  if (j.email1SentAt) bits.push(`Handoff email sent ${formatTime(j.email1SentAt)}`);
+  if (j.email2SentAt) bits.push(`Nudge sent ${formatTime(j.email2SentAt)}`);
+  if (j.gdReturnedAt) bits.push(`Going Deeper returned ${formatTime(j.gdReturnedAt)}`);
+  if (j.email1Error) bits.push(`⚠ ${j.email1Error}`);
+  return bits.length ? bits.map(escape).join(' · ') : 'No consult activity yet.';
+}
+
+function prepSheetHtml(a) {
+  const p = a.prepSheet || {};
+  const j = a.journey || {};
+  const held = !!j.consultHeldAt;
+  return `<div class="aw-section aw-plan" id="prep-sheet">
+    <h3>Consult prep sheet ${held ? '<span class="lead-row-chip s-client">Consult held</span>' : ''}</h3>
+    <div class="aw-muted" style="margin-bottom:0.75rem;">${journeyLine(j)}</div>
+    <div class="editor-form">
+      <label>Loudest color (the one you will name)
+        <input type="text" id="prep-loudest" value="${escape(p.loudestColor || '')}">
+        <span class="field-hint">${escape(p.loudestWhy || '')}</span>
+      </label>
+      <label>Second thread — noted, not named
+        <input type="text" id="prep-second" value="${escape(p.secondThread || '')}">
+      </label>
+      <label>The one food gift — written before the call
+        <textarea id="prep-gift" rows="2">${escape(p.foodGift || '')}</textarea>
+      </label>
+      <label>Notes from the call
+        <textarea id="prep-notes" rows="3">${escape(p.notes || '')}</textarea>
+      </label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+        <label>Consult date &amp; time
+          <input type="datetime-local" id="journey-consult" value="${toLocalInput(j.consultAt)}">
+        </label>
+        <label>Follow-up date &amp; time
+          <input type="datetime-local" id="journey-followup" value="${toLocalInput(j.followUpAt)}">
+          <span class="field-hint">Email 1 asks for the form two days before this.</span>
+        </label>
+      </div>
+      <div class="editor-actions">
+        <div class="editor-actions-left"><span class="lead-save-status" id="prep-status"></span></div>
+        <div class="editor-actions-right">
+          <button type="button" class="ghost-btn" id="prep-print">Print prep sheet</button>
+          <button type="button" class="ghost-btn" id="prep-save">Save prep</button>
+          ${held ? '' : '<button type="button" class="primary-btn" id="consult-held">Mark consult held</button>'}
+        </div>
+      </div>
+      ${held ? '' : '<p class="aw-muted" style="margin:6px 0 0;">"Mark consult held" saves the prep sheet and sends the post-consult handoff email (goal echo, food gift, Going Deeper link, follow-up date) within a minute. The single day-3 nudge goes automatically if the form doesn\'t come back.</p>'}
+    </div>
+  </div>`;
+}
+
+async function savePrepSheet(id, markHeld) {
+  const a = assessmentDocs.find(x => x.id === id);
+  if (!a) return;
+  const st = document.getElementById('prep-status');
+  const j = { ...(a.journey || {}) };
+  const consultVal = document.getElementById('journey-consult').value;
+  const followVal = document.getElementById('journey-followup').value;
+  j.consultAt = consultVal ? new Date(consultVal).toISOString() : (j.consultAt || null);
+  j.followUpAt = followVal ? new Date(followVal).toISOString() : (j.followUpAt || null);
+
+  const prepSheet = {
+    ...(a.prepSheet || {}),
+    loudestColor: document.getElementById('prep-loudest').value.trim(),
+    secondThread: document.getElementById('prep-second').value.trim(),
+    foodGift: document.getElementById('prep-gift').value.trim(),
+    notes: document.getElementById('prep-notes').value.trim()
+  };
+
+  if (markHeld) {
+    if (!prepSheet.foodGift) { st.textContent = 'Add the food gift first — Email 1 quotes it.'; return; }
+    if (!j.followUpAt) { st.textContent = 'Set the follow-up date first — Email 1 references it.'; return; }
+    const ok = await hofConfirm(
+      `Mark the consult held? This sends ${a.client?.name || 'the client'} the handoff email with the Going Deeper link and the food gift ("${prepSheet.foodGift}").`,
+      'Consult held — send email'
+    );
+    if (!ok) return;
+    j.consultHeldAt = new Date().toISOString();
+  }
+
+  st.textContent = 'Saving…';
+  try {
+    await setDoc(doc(db, 'assessments', id), {
+      prepSheet,
+      journey: j,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+    st.textContent = markHeld ? 'Saved — handoff email sending ✓' : 'Saved ✓';
+    setTimeout(() => { if (st) st.textContent = ''; }, 2500);
+  } catch (err) {
+    console.error('prep save failed:', err);
+    st.textContent = 'Save failed: ' + (err.message || err);
+  }
+}
+
+function printPrepSheet(a) {
+  const p = a.prepSheet || {};
+  const j = a.journey || {};
+  const w = window.open('', '_blank');
+  if (!w) return;
+  const leanRows = Object.values(a.tally || {}).map(t =>
+    `<tr><td>${escape(t.label)}</td><td style="text-align:center;">${t.checked}</td><td>${t.flag ? 'flag' : (t.lean ? 'lean' : '—')}${t.selfId ? ' · self-ID' : ''}</td></tr>`
+  ).join('');
+  w.document.write(`<!doctype html><html><head><title>Consult Prep — ${escape(a.client?.name || '')}</title>
+  <style>
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #2C2C2C; max-width: 680px; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-family: Georgia, serif; color: #4A3728; font-size: 1.4rem; margin-bottom: 0.2rem; }
+    .muted { font-size: 0.8125rem; color: #897866; }
+    .box { background: #faf6ef; border: 1px solid #ece2cf; border-radius: 8px; padding: 10px 14px; margin: 10px 0; font-size: 0.9rem; line-height: 1.6; }
+    .label { font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.06em; color: #6B7F5E; font-weight: 700; margin-top: 14px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; margin-top: 6px; }
+    td { padding: 3px 6px; border-bottom: 1px solid #f2ebdf; }
+    .flags { color: #a84b42; }
+  </style></head><body>
+  <div class="muted">HOUSE OF FIGS · FREE CONSULTATION · INTERNAL USE</div>
+  <h1>Consult Prep Sheet — ${escape(a.client?.name || 'Unnamed')}</h1>
+  <div class="muted">${j.consultAt ? 'Consult: ' + escape(new Date(j.consultAt).toLocaleString()) : 'Consult: ____________'} · ${escape(a.client?.email || '')}</div>
+  <div class="label">Chief complaint — in their words</div><div class="box">${escape(a.client?.chiefComplaint || '')}</div>
+  <div class="label">What they hope to walk away with</div><div class="box">${escape(a.client?.hopes || a.client?.goals || '')}</div>
+  <div class="label">Rainbow leans</div><table>${leanRows}</table>
+  <div class="label">Loudest color (the one I will name)</div><div class="box">${escape(p.loudestColor || '')}</div>
+  <div class="label">Second thread — noted, not named</div><div class="box">${escape(p.secondThread || '')}</div>
+  <div class="label">The one food gift — written before the call</div><div class="box">${escape(p.foodGift || '')}</div>
+  <div class="label">Safety flags — if any, care replaces the ask</div><div class="box flags">${(p.safetyFlags || []).map(escape).join('<br>') || 'None noted.'}</div>
+  <div class="label">Notes from the call</div><div class="box" style="min-height:80px;">${escape(p.notes || '')}</div>
+  <script>window.addEventListener('load',function(){setTimeout(function(){window.print();},300);});<\/script>
+  </body></html>`);
+  w.document.close();
 }
 
 const PLAN_FIELD_DEFS = [
@@ -1770,7 +1929,7 @@ function openAssessmentDetail(id) {
     html += '<div class="aw-client">Hold cleared — the plan is drafting now. It appears here in about a minute.</div>';
   }
   if (a.status === 'approved') {
-    html += `<div class="aw-client" style="border-color:#c9d6c0;background:#f4f8f1;">✓ Assessment approved${a.approvedAt ? ' ' + formatTime(a.approvedAt) : ''} — <strong>ready for the first health meeting</strong>. Send the plan below during or after the meeting.</div>`;
+    html += `<div class="aw-client" style="border-color:#c9d6c0;background:#f4f8f1;">✓ Assessment approved${a.approvedAt ? ' ' + formatTime(a.approvedAt) : ''} — <strong>ready for the follow-up meeting</strong>. Send the plan below during or after that conversation.</div>`;
   }
 
   html += `<div class="aw-client">
@@ -1779,6 +1938,7 @@ function openAssessmentDetail(id) {
     <div><strong>Named fear:</strong> ${escape(a.client?.fears || '—')}</div>
   </div>`;
 
+  html += prepSheetHtml(a);
   html += worksheetHtml(a);
 
   // Plan editor (only when not halted)
@@ -1814,11 +1974,11 @@ function openAssessmentDetail(id) {
       <div class="editor-actions-left"><span class="lead-save-status" id="plan-save-status"></span></div>
       <div class="editor-actions-right">
         <button type="button" class="ghost-btn" id="plan-save">Save draft</button>
-        ${a.status !== 'approved' ? '<button type="button" class="primary-btn" id="assessment-approve">Approve assessment — ready for meeting</button>' : ''}
+        ${a.status !== 'approved' ? '<button type="button" class="primary-btn" id="assessment-approve">Approve assessment — ready for follow-up</button>' : ''}
         <button type="button" class="${a.status === 'approved' ? 'primary-btn' : 'ghost-btn'}" id="plan-approve">Send plan to client</button>
       </div>
     </div>
-    <p class="aw-muted" style="margin-top:8px;">Approving the assessment marks ${escape(a.client?.preferredName || a.client?.name || 'this client')} as ready for their first health meeting — nothing is emailed. "Send plan" emails the 30-day plan to ${escape(plan.clientEmail || 'the client')}; use it during or after the meeting. The leak check runs once more at send time.</p>`;
+    <p class="aw-muted" style="margin-top:8px;">Approving the assessment marks ${escape(a.client?.preferredName || a.client?.name || 'this client')} as ready for their follow-up meeting — nothing is emailed. "Send plan" emails the 30-day plan to ${escape(plan.clientEmail || 'the client')}; use it during or after the meeting. The leak check runs once more at send time.</p>`;
     html += '</div>';
   }
 
@@ -1832,6 +1992,13 @@ function openAssessmentDetail(id) {
   if (approveBtn) approveBtn.addEventListener('click', () => savePlanDraft(id, true));
   const printBtn = document.getElementById('aw-print');
   if (printBtn) printBtn.addEventListener('click', () => printWorksheet(a));
+
+  const prepSave = document.getElementById('prep-save');
+  const prepPrint = document.getElementById('prep-print');
+  const consultHeldBtn = document.getElementById('consult-held');
+  if (prepSave) prepSave.addEventListener('click', () => savePrepSheet(id, false));
+  if (prepPrint) prepPrint.addEventListener('click', () => printPrepSheet(a));
+  if (consultHeldBtn) consultHeldBtn.addEventListener('click', () => savePrepSheet(id, true));
 
   const clearHoldBtn = document.getElementById('clear-hold');
   if (clearHoldBtn) clearHoldBtn.addEventListener('click', async () => {
@@ -1857,7 +2024,7 @@ function openAssessmentDetail(id) {
         approvedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       }, { merge: true });
-      st.textContent = 'Approved — ready for the first health meeting ✓';
+      st.textContent = 'Approved — ready for the follow-up meeting ✓';
       setTimeout(() => { if (st) st.textContent = ''; }, 2500);
     } catch (err) {
       console.error('assessment approve failed:', err);
@@ -1938,9 +2105,12 @@ function collectPlanDraft(existing) {
 // ===================================================================
 const FUNNEL_STAGES = [
   { key: 'quiz', label: 'Quiz leads', hint: 'Took the quiz, no intake yet' },
-  { key: 'review', label: 'In review', hint: 'Intake in — assessment awaiting Bethany\'s approval' },
-  { key: 'ready', label: 'Ready for meeting', hint: 'Assessment approved — first health meeting next' },
-  { key: 'sent', label: 'Plan sent', hint: '30-day plan delivered' },
+  { key: 'prep', label: 'Consult prep', hint: 'Intake in — review prep sheet before the free consult' },
+  { key: 'awaitingGd', label: 'Awaiting Going Deeper', hint: 'Consult held — companion form not back yet' },
+  { key: 'review', label: 'In review', hint: 'Full picture in — assessment awaiting approval' },
+  { key: 'ready', label: 'Ready for follow-up', hint: 'Assessment approved — follow-up meeting next' },
+  { key: 'coaching', label: 'Coaching', hint: 'Plan sent — inside the 30 days' },
+  { key: 'lookback', label: 'Day-30 look-back', hint: 'Past day 30 — renew, deepen, or refer' },
   { key: 'halted', label: 'Safety hold', hint: 'Halted — needs Bethany before anything proceeds' }
 ];
 
@@ -1949,7 +2119,7 @@ function emailOf(d) {
 }
 
 function computeFunnel() {
-  const stages = { quiz: [], review: [], ready: [], halted: [], sent: [] };
+  const stages = { quiz: [], prep: [], awaitingGd: [], review: [], ready: [], coaching: [], lookback: [], halted: [] };
   const intakeEmails = new Set(intakeDocs.map(emailOf).filter(Boolean));
 
   // Quiz leads who haven't submitted an intake yet (dedupe by email).
@@ -1974,10 +2144,21 @@ function computeFunnel() {
       when: i.createdAt,
       open: a ? () => openAssessmentDetail(i.id) : () => openDetail('intake', i.id)
     };
-    if (a && a.status === 'halted') stages.halted.push(person);
-    else if (plan && plan.status === 'sent') stages.sent.push(person);
-    else if (a && a.status === 'approved') stages.ready.push(person);
-    else stages.review.push(person);
+    const j = (a && a.journey) || {};
+    if (a && a.status === 'halted') {
+      stages.halted.push(person);
+    } else if (plan && plan.status === 'sent') {
+      const days = (Date.now() - Date.parse(plan.sentAt || plan.updatedAt || '')) / 86400000;
+      (days > 30 ? stages.lookback : stages.coaching).push(person);
+    } else if (a && a.status === 'approved') {
+      stages.ready.push(person);
+    } else if (j.gdReturnedAt) {
+      stages.review.push(person);
+    } else if (j.consultHeldAt) {
+      stages.awaitingGd.push(person);
+    } else {
+      stages.prep.push(person);
+    }
   }
   return stages;
 }
@@ -1991,7 +2172,7 @@ function renderFunnel() {
       <div class="funnel-count">${stages[s.key].length}</div>
       <div class="funnel-label">${s.label}</div>
       <div class="funnel-hint">${s.hint}</div>
-      ${idx < 3 ? '<span class="funnel-arrow" aria-hidden="true">&rarr;</span>' : ''}
+      ${idx < 6 ? '<span class="funnel-arrow" aria-hidden="true">&rarr;</span>' : ''}
     </button>`).join('');
   el.querySelectorAll('.funnel-card').forEach(card =>
     card.addEventListener('click', () => openFunnelStage(card.dataset.stage))
