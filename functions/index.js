@@ -36,7 +36,7 @@ const DASHBOARD_URL = 'https://houseoffigs.org/admin';
 // carries ?from=quiz — the intake page is gated quiz-first, and this is
 // how emailed quiz-completers pass the gate on any device.
 const INTAKE_URL = 'https://houseoffigs.org/intake.html?from=quiz';
-const BOOKING_URL = 'https://calendly.com/houseoffigscompany/30min';
+const BOOKING_URL = 'https://calendly.com/figatry/30min';
 
 const gmailPassword = defineSecret('GMAIL_APP_PASSWORD');
 

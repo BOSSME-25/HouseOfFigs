@@ -26,7 +26,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 
 const GOING_DEEPER_URL = 'https://houseoffigs.org/going-deeper.html';
 const INTAKE_URL = 'https://houseoffigs.org/intake.html?from=quiz'; // gate pass-through
-const BOOKING_URL = 'https://calendly.com/houseoffigscompany/30min';
+const BOOKING_URL = 'https://calendly.com/figatry/30min';
 
 // Personal-feel formatting for Bethany's follow-up emails (Arizona time).
 function fmtWhen(iso, withTime = true) {
