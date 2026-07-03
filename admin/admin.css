@@ -675,3 +675,195 @@ html, body {
   .modal-content { padding: 1.5rem 1.25rem; }
   .login-card { padding: 2.25rem 1.5rem; }
 }
+
+/* ===================================================================
+   CMS — buttons, status chips, editor forms, lead management
+   =================================================================== */
+.primary-btn {
+  background-color: var(--color-fig-accent);
+  border: 1px solid var(--color-fig-accent);
+  color: var(--color-white);
+  padding: 0.5rem 1.1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.primary-btn:hover { background-color: #7a5350; border-color: #7a5350; }
+.primary-btn:disabled { opacity: 0.6; cursor: default; }
+
+.ghost-btn {
+  background: none;
+  border: 1px solid var(--color-warm-sand);
+  color: var(--color-deep-fig);
+  padding: 0.5rem 1.1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.ghost-btn:hover { background-color: var(--color-soft-cream); }
+
+.danger-btn {
+  background: none;
+  border: 1px solid #d8b3ad;
+  color: #a84b42;
+  padding: 0.5rem 1.1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.danger-btn:hover { background-color: #a84b42; border-color: #a84b42; color: var(--color-white); }
+
+/* Status chips */
+.status-chip {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  margin-left: 0.4rem;
+  vertical-align: middle;
+}
+.status-published { background-color: #e4ecdd; color: #4f6540; }
+.status-draft { background-color: #f0e7d8; color: #8a7355; }
+.cms-row { cursor: pointer; }
+
+/* Editor form */
+.editor-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  margin-top: 0.5rem;
+}
+.editor-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-deep-fig);
+}
+.editor-form input[type="text"],
+.editor-form input[type="number"],
+.editor-form textarea,
+.editor-form select {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 400;
+  color: var(--color-text-dark);
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background-color: var(--color-white);
+  width: 100%;
+  box-sizing: border-box;
+}
+.editor-form textarea { resize: vertical; line-height: 1.5; }
+.editor-body-field { font-family: 'SF Mono', 'Menlo', monospace; font-size: 0.875rem; }
+.editor-form input:focus,
+.editor-form textarea:focus,
+.editor-form select:focus {
+  outline: none;
+  border-color: var(--color-fig-accent);
+  box-shadow: 0 0 0 2px rgba(139, 94, 90, 0.12);
+}
+.field-hint {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--color-muted);
+  font-style: italic;
+}
+.editor-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  border-top: 1px solid var(--color-border);
+  padding-top: 1rem;
+}
+.editor-actions-right { display: flex; gap: 0.6rem; }
+.editor-status-msg { color: #a84b42; font-size: 0.8125rem; margin: 0; min-height: 1em; }
+
+/* Lead management panel inside the detail modal */
+.lead-panel {
+  background-color: var(--color-soft-cream);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1rem 1.1rem;
+  margin: 1rem 0 1.25rem;
+}
+.lead-panel-title {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-olive-leaf);
+  margin: 0 0 0.7rem;
+}
+.lead-status-row { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.85rem; }
+.lead-status-btn {
+  border: 1px solid var(--color-warm-sand);
+  background-color: var(--color-white);
+  color: var(--color-deep-fig);
+  border-radius: 999px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.8125rem;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.lead-status-btn:hover { border-color: var(--color-olive-leaf); }
+.lead-status-btn.active {
+  background-color: var(--color-olive-leaf);
+  border-color: var(--color-olive-leaf);
+  color: var(--color-white);
+}
+.lead-field-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  margin: 0.6rem 0 0.3rem;
+}
+.lead-notes {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  color: var(--color-text-dark);
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  resize: vertical;
+  line-height: 1.5;
+}
+.lead-notes:focus { outline: none; border-color: var(--color-fig-accent); box-shadow: 0 0 0 2px rgba(139, 94, 90, 0.12); }
+.lead-tags-input { width: 100%; box-sizing: border-box; }
+.lead-save-row { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.75rem; }
+.lead-save-status { font-size: 0.8125rem; color: var(--color-olive-leaf); }
+
+/* Status chip shown on quiz/intake list rows */
+.lead-row-chip {
+  display: inline-block;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 0.08rem 0.4rem;
+  border-radius: 4px;
+  margin-left: 0.4rem;
+  vertical-align: middle;
+  background-color: #eadfce;
+  color: #7a6647;
+}
+.lead-row-chip.s-contacted { background-color: #dfe7ef; color: #4a6076; }
+.lead-row-chip.s-client { background-color: #e4ecdd; color: #4f6540; }
+.lead-row-chip.s-archived { background-color: #eee; color: #999; }

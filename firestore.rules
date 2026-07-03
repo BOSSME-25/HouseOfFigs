@@ -123,6 +123,64 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------
+    // /posts/{postId} — blog posts, managed from the admin dashboard.
+    //
+    // Public site reads only PUBLISHED posts. Admins read everything
+    // (including drafts) and have full create/update/delete.
+    // -------------------------------------------------------------------
+    match /posts/{postId} {
+      allow read: if isAdmin() || resource.data.status == 'published';
+      allow create, update: if isAdmin() && validPost(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    function validPost(d) {
+      return d.keys().hasAll(['title', 'slug', 'status', 'createdAt', 'updatedAt'])
+        && isString(d.title, 200)
+        && isString(d.slug, 200)
+        && d.slug.matches('^[a-z0-9]+(?:-[a-z0-9]+)*$')
+        && d.status in ['draft', 'published']
+        && isOptionalString(d.get('excerpt', null), 600)
+        && isOptionalString(d.get('body', null), 100000)
+        && isOptionalString(d.get('coverImage', null), 1000)
+        && isOptionalString(d.get('author', null), 200)
+        && isOptionalString(d.get('publishedAt', null), 50)
+        && isString(d.createdAt, 50)
+        && isString(d.updatedAt, 50);
+    }
+
+    // -------------------------------------------------------------------
+    // /testimonials/{id} — client testimonials, managed from the admin.
+    // Public site reads only PUBLISHED testimonials.
+    // -------------------------------------------------------------------
+    match /testimonials/{id} {
+      allow read: if isAdmin() || resource.data.status == 'published';
+      allow create, update: if isAdmin() && validTestimonial(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    function validTestimonial(d) {
+      return d.keys().hasAll(['name', 'quote', 'status', 'createdAt', 'updatedAt'])
+        && isString(d.name, 200)
+        && isString(d.quote, 4000)
+        && d.status in ['draft', 'published']
+        && isOptionalString(d.get('context', null), 300)
+        && (d.get('order', 0) is int)
+        && isString(d.createdAt, 50)
+        && isString(d.updatedAt, 50);
+    }
+
+    // -------------------------------------------------------------------
+    // /leadMeta/{submissionId} — admin-only workflow metadata attached to a
+    // quiz or intake (status, notes, tags). Kept in a SEPARATE collection so
+    // the strict write-once rules on /quizzes and /intakes stay intact.
+    // Document id is prefixed: "quiz_<id>" or "intake_<id>".
+    // -------------------------------------------------------------------
+    match /leadMeta/{submissionId} {
+      allow read, write: if isAdmin();
+    }
+
+    // -------------------------------------------------------------------
     // Default deny for any other collection
     // -------------------------------------------------------------------
     match /{anything=**} {

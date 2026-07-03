@@ -18,7 +18,11 @@ import {
   doc,
   setDoc,
   addDoc,
-  collection
+  collection,
+  query,
+  where,
+  limit,
+  getDocs
 } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
 
 const firebaseConfig = {
@@ -54,6 +58,51 @@ window.hofFirebase = {
     if (!db) throw new Error('Firestore not initialized');
     const ref = await addDoc(collection(db, 'intakes'), data);
     return ref.id;
+  },
+
+  // ---- Public content reads (blog + testimonials) --------------------
+  // Only PUBLISHED docs are readable per Firestore rules.
+
+  async getPublishedPosts(max = 50) {
+    if (!db) throw new Error('Firestore not initialized');
+    // Equality-only query (no composite index needed); sort client-side.
+    const q = query(
+      collection(db, 'posts'),
+      where('status', '==', 'published'),
+      limit(max)
+    );
+    const snap = await getDocs(q);
+    return snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (b.publishedAt || b.createdAt || '').localeCompare(a.publishedAt || a.createdAt || ''));
+  },
+
+  async getPostBySlug(slug) {
+    if (!db) throw new Error('Firestore not initialized');
+    if (!slug) return null;
+    const q = query(
+      collection(db, 'posts'),
+      where('status', '==', 'published'),
+      where('slug', '==', slug),
+      limit(1)
+    );
+    const snap = await getDocs(q);
+    if (snap.empty) return null;
+    const d = snap.docs[0];
+    return { id: d.id, ...d.data() };
+  },
+
+  async getPublishedTestimonials(max = 50) {
+    if (!db) throw new Error('Firestore not initialized');
+    const q = query(
+      collection(db, 'testimonials'),
+      where('status', '==', 'published'),
+      limit(max)
+    );
+    const snap = await getDocs(q);
+    return snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   }
 };
 

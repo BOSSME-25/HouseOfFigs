@@ -28,7 +28,11 @@ import {
   limit,
   onSnapshot,
   doc,
-  getDoc
+  getDoc,
+  setDoc,
+  addDoc,
+  updateDoc,
+  deleteDoc
 } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
 
 // ===================================================================
@@ -63,6 +67,9 @@ setPersistence(auth, browserLocalPersistence).catch(console.error);
 // ===================================================================
 let quizDocs = [];
 let intakeDocs = [];
+let postDocs = [];
+let testimonialDocs = [];
+let leadMeta = {};          // submissionId ("quiz_x"/"intake_x") -> { status, notes, tags }
 let lastSeenIds = new Set(); // for "new" highlighting on first load
 let firstSnapshot = { quizzes: true, intakes: true };
 
@@ -173,6 +180,28 @@ function initSubscriptions() {
     console.error('intakes onSnapshot error:', err);
     showFatalError(err);
   });
+
+  // Blog posts
+  onSnapshot(query(collection(db, 'posts'), orderBy('updatedAt', 'desc')), (snap) => {
+    postDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderPostList();
+    setText('badge-posts', postDocs.length);
+  }, (err) => console.error('posts onSnapshot error:', err));
+
+  // Testimonials
+  onSnapshot(query(collection(db, 'testimonials'), orderBy('order', 'asc')), (snap) => {
+    testimonialDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderTestimonialList();
+    setText('badge-testimonials', testimonialDocs.length);
+  }, (err) => console.error('testimonials onSnapshot error:', err));
+
+  // Lead workflow metadata (status / notes / tags), keyed by submission id
+  onSnapshot(collection(db, 'leadMeta'), (snap) => {
+    leadMeta = {};
+    snap.docs.forEach(d => { leadMeta[d.id] = d.data(); });
+    renderQuizList();
+    renderIntakeList();
+  }, (err) => console.error('leadMeta onSnapshot error:', err));
 }
 
 function handleNewItems(kind, docs) {
@@ -265,7 +294,7 @@ function renderQuizList() {
     return `
       <div class="data-row" data-id="${escape(d.id)}" data-type="quiz">
         <div class="row-main">
-          <div class="row-title">${escape(profile)}</div>
+          <div class="row-title">${escape(profile)}${leadChip('quiz', d.id)}</div>
           <div class="row-sub">${who}${subtitle ? ' &middot; <em>' + escape(subtitle) + '</em>' : ''}</div>
         </div>
         <div class="row-time">${formatTime(d.createdAt)}</div>
@@ -294,7 +323,7 @@ function renderIntakeList() {
     return `
       <div class="data-row" data-id="${escape(d.id)}" data-type="intake">
         <div class="row-main">
-          <div class="row-title">${escape(name)}</div>
+          <div class="row-title">${escape(name)}${leadChip('intake', d.id)}</div>
           <div class="row-sub">${sub}</div>
         </div>
         <div class="row-time">${formatTime(d.createdAt)}</div>
@@ -393,7 +422,7 @@ async function openDetail(type, id) {
     if (!snap.exists()) return;
     data = snap.data();
   }
-  modalBodyEl.innerHTML = renderDetail(type, data);
+  modalBodyEl.innerHTML = renderDetail(type, data, id);
   modalEl.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
@@ -551,8 +580,9 @@ function findLinkedSubmissions(type, data) {
     .map(doc => ({ kind: otherKind, doc }));
 }
 
-function renderDetail(type, data) {
+function renderDetail(type, data, id) {
   const title = type === 'quiz' ? 'Quiz response' : 'Intake submission';
+  const subId = id || data.id;
 
   // Look for linked submissions in the other collection
   const linked = findLinkedSubmissions(type, data);
@@ -561,6 +591,9 @@ function renderDetail(type, data) {
   html += `<div class="detail-meta">Submitted ${formatTime(data.createdAt)} &middot; `
        + `<a href="#" id="print-submission">Download / print</a> &middot; `
        + `<a href="#" id="copy-json">Copy as JSON</a></div>`;
+
+  // Lead workflow panel (status / notes / tags)
+  html += renderLeadPanel(type, subId);
 
   if (linked.length > 0) {
     html += '<div class="linked-banner">';
@@ -617,6 +650,7 @@ function renderDetail(type, data) {
   }
 
   setTimeout(() => {
+    initLeadPanel(type, subId);
     const copyLink = document.getElementById('copy-json');
     if (copyLink) {
       copyLink.addEventListener('click', (e) => {
@@ -1131,4 +1165,391 @@ function formatTime(iso) {
   const days = Math.floor(hours / 24);
   if (days < 7) return days + 'd ago';
   return new Date(t).toLocaleDateString();
+}
+
+// ===================================================================
+// CMS — shared editor modal
+// ===================================================================
+const editorModalEl = document.getElementById('editor-modal');
+const editorBodyEl = document.getElementById('editor-body');
+
+function openEditor(html) {
+  editorBodyEl.innerHTML = html;
+  editorModalEl.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+function closeEditor() {
+  editorModalEl.classList.add('hidden');
+  document.body.style.overflow = '';
+  editorBodyEl.innerHTML = '';
+}
+document.getElementById('editor-close').addEventListener('click', closeEditor);
+document.querySelectorAll('[data-close-editor]').forEach(el =>
+  el.addEventListener('click', closeEditor)
+);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !editorModalEl.classList.contains('hidden')) closeEditor();
+});
+
+function slugify(s) {
+  return String(s || '').toLowerCase().trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 200);
+}
+
+// ===================================================================
+// CMS — Blog posts
+// ===================================================================
+function renderPostList() {
+  const el = document.getElementById('post-list');
+  if (!el) return;
+  if (postDocs.length === 0) {
+    el.innerHTML = '<p class="empty">No posts yet. Create your first one.</p>';
+    return;
+  }
+  el.innerHTML = postDocs.map(d => {
+    const chip = d.status === 'published'
+      ? '<span class="status-chip status-published">Published</span>'
+      : '<span class="status-chip status-draft">Draft</span>';
+    const date = d.publishedAt || d.updatedAt || d.createdAt;
+    const excerpt = d.excerpt ? escape(d.excerpt) : '<em>No excerpt</em>';
+    return `
+      <div class="data-row cms-row" data-id="${escape(d.id)}" data-kind="post">
+        <div class="row-main">
+          <div class="row-title">${escape(d.title || 'Untitled')} ${chip}</div>
+          <div class="row-sub">${excerpt}</div>
+        </div>
+        <div class="row-time">${formatTime(date)}</div>
+      </div>`;
+  }).join('');
+  el.querySelectorAll('.cms-row').forEach(row =>
+    row.addEventListener('click', () => openPostEditor(row.dataset.id))
+  );
+}
+
+function openPostEditor(id) {
+  const post = id ? postDocs.find(p => p.id === id) : null;
+  const isNew = !post;
+  const p = post || {
+    title: '', slug: '', excerpt: '', body: '',
+    coverImage: '', author: 'Bethany Grissum', status: 'draft'
+  };
+  openEditor(`
+    <h2>${isNew ? 'New blog post' : 'Edit blog post'}</h2>
+    <form id="post-form" class="editor-form">
+      <label>Title
+        <input type="text" name="title" value="${escape(p.title)}" required>
+      </label>
+      <label>Slug (web address)
+        <input type="text" name="slug" value="${escape(p.slug)}" placeholder="auto-filled from title">
+        <span class="field-hint">Lowercase letters, numbers, and hyphens. Leave blank to auto-fill. Shows as /blog/&lt;slug&gt;.</span>
+      </label>
+      <label>Excerpt (short teaser shown on the blog list)
+        <textarea name="excerpt" rows="2" maxlength="600">${escape(p.excerpt)}</textarea>
+      </label>
+      <label>Cover image URL (optional)
+        <input type="text" name="coverImage" value="${escape(p.coverImage)}" placeholder="/images/...">
+      </label>
+      <label>Author
+        <input type="text" name="author" value="${escape(p.author || '')}">
+      </label>
+      <label>Body
+        <textarea name="body" rows="14" class="editor-body-field">${escape(p.body)}</textarea>
+        <span class="field-hint">Write in plain paragraphs — a blank line starts a new paragraph. Basic HTML (&lt;strong&gt;, &lt;em&gt;, &lt;a&gt;, lists) is allowed.</span>
+      </label>
+      <label class="editor-status">Status
+        <select name="status">
+          <option value="draft" ${p.status !== 'published' ? 'selected' : ''}>Draft — not visible on the site</option>
+          <option value="published" ${p.status === 'published' ? 'selected' : ''}>Published — live on the site</option>
+        </select>
+      </label>
+      <div class="editor-actions">
+        <div class="editor-actions-left">
+          ${isNew ? '' : '<button type="button" class="danger-btn" id="delete-post">Delete</button>'}
+        </div>
+        <div class="editor-actions-right">
+          <button type="button" class="ghost-btn" id="cancel-editor">Cancel</button>
+          <button type="submit" class="primary-btn">Save</button>
+        </div>
+      </div>
+      <p class="editor-status-msg" id="post-status-msg"></p>
+    </form>
+  `);
+  const form = document.getElementById('post-form');
+  form.addEventListener('submit', (e) => { e.preventDefault(); savePost(id, form); });
+  document.getElementById('cancel-editor').addEventListener('click', closeEditor);
+  const del = document.getElementById('delete-post');
+  if (del) del.addEventListener('click', () => deletePost(id));
+}
+
+async function savePost(id, form) {
+  const msg = document.getElementById('post-status-msg');
+  const submitBtn = form.querySelector('button[type="submit"]');
+  const fd = new FormData(form);
+  const title = (fd.get('title') || '').trim();
+  if (!title) { msg.textContent = 'Title is required.'; return; }
+
+  const slug = slugify(fd.get('slug') || '') || slugify(title);
+  if (!slug) { msg.textContent = 'Please add a title or slug with letters/numbers.'; return; }
+
+  const now = new Date().toISOString();
+  const status = fd.get('status') === 'published' ? 'published' : 'draft';
+  const existing = id ? postDocs.find(p => p.id === id) : null;
+
+  const data = {
+    title,
+    slug,
+    excerpt: (fd.get('excerpt') || '').trim(),
+    body: (fd.get('body') || '').trim(),
+    coverImage: (fd.get('coverImage') || '').trim(),
+    author: (fd.get('author') || '').trim(),
+    status,
+    createdAt: existing?.createdAt || now,
+    updatedAt: now,
+    publishedAt: status === 'published' ? (existing?.publishedAt || now) : (existing?.publishedAt || null)
+  };
+
+  try {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving…';
+    if (id) {
+      await setDoc(doc(db, 'posts', id), data);
+    } else {
+      await addDoc(collection(db, 'posts'), data);
+    }
+    closeEditor();
+  } catch (err) {
+    console.error('savePost failed:', err);
+    msg.textContent = 'Save failed: ' + (err.message || err);
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Save';
+  }
+}
+
+async function deletePost(id) {
+  if (!confirm('Delete this post permanently? This cannot be undone.')) return;
+  try {
+    await deleteDoc(doc(db, 'posts', id));
+    closeEditor();
+  } catch (err) {
+    console.error('deletePost failed:', err);
+    alert('Delete failed: ' + (err.message || err));
+  }
+}
+
+document.getElementById('new-post').addEventListener('click', () => openPostEditor(null));
+
+// ===================================================================
+// CMS — Testimonials
+// ===================================================================
+function renderTestimonialList() {
+  const el = document.getElementById('testimonial-list');
+  if (!el) return;
+  if (testimonialDocs.length === 0) {
+    el.innerHTML = '<p class="empty">No testimonials yet. Create your first one.</p>';
+    return;
+  }
+  el.innerHTML = testimonialDocs.map(d => {
+    const chip = d.status === 'published'
+      ? '<span class="status-chip status-published">Published</span>'
+      : '<span class="status-chip status-draft">Draft</span>';
+    const quote = d.quote ? escape(d.quote.slice(0, 120)) + (d.quote.length > 120 ? '…' : '') : '';
+    return `
+      <div class="data-row cms-row" data-id="${escape(d.id)}" data-kind="testimonial">
+        <div class="row-main">
+          <div class="row-title">${escape(d.name || 'Anonymous')} ${chip}</div>
+          <div class="row-sub">${quote}</div>
+        </div>
+        <div class="row-time">#${d.order ?? 0}</div>
+      </div>`;
+  }).join('');
+  el.querySelectorAll('.cms-row').forEach(row =>
+    row.addEventListener('click', () => openTestimonialEditor(row.dataset.id))
+  );
+}
+
+function openTestimonialEditor(id) {
+  const t = id ? testimonialDocs.find(x => x.id === id) : null;
+  const isNew = !t;
+  const nextOrder = testimonialDocs.length
+    ? Math.max(...testimonialDocs.map(x => x.order ?? 0)) + 1
+    : 0;
+  const v = t || { name: '', quote: '', context: '', status: 'draft', order: nextOrder };
+  openEditor(`
+    <h2>${isNew ? 'New testimonial' : 'Edit testimonial'}</h2>
+    <form id="testimonial-form" class="editor-form">
+      <label>Name
+        <input type="text" name="name" value="${escape(v.name)}" required>
+      </label>
+      <label>Context (optional — e.g. "Nutrition client, 2025")
+        <input type="text" name="context" value="${escape(v.context || '')}">
+      </label>
+      <label>Quote
+        <textarea name="quote" rows="6" required maxlength="4000">${escape(v.quote)}</textarea>
+      </label>
+      <label>Display order
+        <input type="number" name="order" value="${v.order ?? 0}" step="1">
+        <span class="field-hint">Lower numbers show first.</span>
+      </label>
+      <label class="editor-status">Status
+        <select name="status">
+          <option value="draft" ${v.status !== 'published' ? 'selected' : ''}>Draft — not visible on the site</option>
+          <option value="published" ${v.status === 'published' ? 'selected' : ''}>Published — live on the site</option>
+        </select>
+      </label>
+      <div class="editor-actions">
+        <div class="editor-actions-left">
+          ${isNew ? '' : '<button type="button" class="danger-btn" id="delete-testimonial">Delete</button>'}
+        </div>
+        <div class="editor-actions-right">
+          <button type="button" class="ghost-btn" id="cancel-editor-t">Cancel</button>
+          <button type="submit" class="primary-btn">Save</button>
+        </div>
+      </div>
+      <p class="editor-status-msg" id="testimonial-status-msg"></p>
+    </form>
+  `);
+  const form = document.getElementById('testimonial-form');
+  form.addEventListener('submit', (e) => { e.preventDefault(); saveTestimonial(id, form); });
+  document.getElementById('cancel-editor-t').addEventListener('click', closeEditor);
+  const del = document.getElementById('delete-testimonial');
+  if (del) del.addEventListener('click', () => deleteTestimonial(id));
+}
+
+async function saveTestimonial(id, form) {
+  const msg = document.getElementById('testimonial-status-msg');
+  const submitBtn = form.querySelector('button[type="submit"]');
+  const fd = new FormData(form);
+  const name = (fd.get('name') || '').trim();
+  const quote = (fd.get('quote') || '').trim();
+  if (!name || !quote) { msg.textContent = 'Name and quote are required.'; return; }
+
+  const now = new Date().toISOString();
+  const existing = id ? testimonialDocs.find(x => x.id === id) : null;
+  const order = parseInt(fd.get('order'), 10);
+  const data = {
+    name,
+    quote,
+    context: (fd.get('context') || '').trim(),
+    status: fd.get('status') === 'published' ? 'published' : 'draft',
+    order: Number.isFinite(order) ? order : 0,
+    createdAt: existing?.createdAt || now,
+    updatedAt: now
+  };
+
+  try {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving…';
+    if (id) {
+      await setDoc(doc(db, 'testimonials', id), data);
+    } else {
+      await addDoc(collection(db, 'testimonials'), data);
+    }
+    closeEditor();
+  } catch (err) {
+    console.error('saveTestimonial failed:', err);
+    msg.textContent = 'Save failed: ' + (err.message || err);
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Save';
+  }
+}
+
+async function deleteTestimonial(id) {
+  if (!confirm('Delete this testimonial permanently? This cannot be undone.')) return;
+  try {
+    await deleteDoc(doc(db, 'testimonials', id));
+    closeEditor();
+  } catch (err) {
+    console.error('deleteTestimonial failed:', err);
+    alert('Delete failed: ' + (err.message || err));
+  }
+}
+
+document.getElementById('new-testimonial').addEventListener('click', () => openTestimonialEditor(null));
+
+// ===================================================================
+// Lead management — status / notes / tags on quiz + intake submissions.
+// Stored in /leadMeta/{type_id} so submission docs stay write-once.
+// ===================================================================
+const LEAD_STATUSES = ['New', 'Contacted', 'Client', 'Archived'];
+
+function leadKey(type, id) {
+  // Normalize type ('quiz'/'intake') and prefix the id.
+  return `${type}_${id}`;
+}
+
+function renderLeadPanel(type, id) {
+  if (!id) return '';
+  const meta = leadMeta[leadKey(type, id)] || {};
+  const current = meta.status || 'New';
+  const notes = meta.notes || '';
+  const tags = Array.isArray(meta.tags) ? meta.tags.join(', ') : (meta.tags || '');
+
+  const buttons = LEAD_STATUSES.map(s =>
+    `<button type="button" class="lead-status-btn${s === current ? ' active' : ''}" data-status="${s}">${s}</button>`
+  ).join('');
+
+  return `
+    <div class="lead-panel" data-lead-id="${escape(id)}" data-lead-type="${escape(type)}">
+      <p class="lead-panel-title">Lead status &amp; notes</p>
+      <div class="lead-status-row" id="lead-status-row">${buttons}</div>
+      <label class="lead-field-label" for="lead-notes-field">Private notes (only visible here)</label>
+      <textarea class="lead-notes" id="lead-notes-field" rows="3" placeholder="Add a note about this lead…">${escape(notes)}</textarea>
+      <label class="lead-field-label" for="lead-tags-field">Tags (comma-separated)</label>
+      <input type="text" class="lead-notes lead-tags-input" id="lead-tags-field" value="${escape(tags)}" placeholder="e.g. hormones, follow-up, VIP">
+      <div class="lead-save-row">
+        <button type="button" class="primary-btn" id="lead-save">Save</button>
+        <span class="lead-save-status" id="lead-save-status"></span>
+      </div>
+    </div>`;
+}
+
+function initLeadPanel(type, id) {
+  const panel = document.querySelector('.lead-panel');
+  if (!panel || !id) return;
+
+  let selectedStatus = (leadMeta[leadKey(type, id)] || {}).status || 'New';
+
+  panel.querySelectorAll('.lead-status-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selectedStatus = btn.dataset.status;
+      panel.querySelectorAll('.lead-status-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  const saveBtn = document.getElementById('lead-save');
+  const statusEl = document.getElementById('lead-save-status');
+  saveBtn.addEventListener('click', async () => {
+    const notes = document.getElementById('lead-notes-field').value.trim();
+    const tags = document.getElementById('lead-tags-field').value
+      .split(',').map(t => t.trim()).filter(Boolean).slice(0, 20);
+    saveBtn.disabled = true;
+    statusEl.textContent = 'Saving…';
+    try {
+      await setDoc(doc(db, 'leadMeta', leadKey(type, id)), {
+        status: selectedStatus,
+        notes,
+        tags,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+      statusEl.textContent = 'Saved ✓';
+      setTimeout(() => { statusEl.textContent = ''; }, 2000);
+    } catch (err) {
+      console.error('lead save failed:', err);
+      statusEl.textContent = 'Save failed';
+    } finally {
+      saveBtn.disabled = false;
+    }
+  });
+}
+
+// Small status chip for the list rows (hidden for the default "New").
+function leadChip(type, id) {
+  const meta = leadMeta[leadKey(type, id)];
+  const status = meta && meta.status;
+  if (!status || status === 'New') return '';
+  const cls = 's-' + status.toLowerCase();
+  return `<span class="lead-row-chip ${cls}">${escape(status)}</span>`;
 }

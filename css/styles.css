@@ -1237,6 +1237,16 @@ p {
   line-height: 1.6;
 }
 
+/* Loading / empty state for Firestore-backed grids (blog, testimonials) */
+.blog-loading {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: #897866;
+  font-style: italic;
+  padding: 2.5rem 1rem;
+  margin: 0;
+}
+
 /* --- Podcast --- */
 .episode-list {
   display: flex;

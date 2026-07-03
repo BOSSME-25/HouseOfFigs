@@ -86,80 +86,8 @@
     <!-- BLOG GRID -->
     <section class="section section--white">
       <div class="container">
-        <div class="blog-grid">
-
-          <article class="blog-card fade-in fade-in-delay-1">
-            <div class="blog-card-image">
-              <img src="images/service-guidance.png" alt="Two women walking together, active movement for wellness" class="placeholder-image" style="object-fit: cover; width: 100%; height: 100%;">
-            </div>
-            <div class="blog-card-content">
-              <p class="blog-card-date">[Placeholder] March 15, 2026</p>
-              <h3><a href="#">Understanding Inflammation: What Your Body Is Telling You</a></h3>
-              <p class="blog-card-excerpt">Inflammation isn't always the enemy &mdash; but chronic inflammation is your body's way of asking for help. Learn what triggers it, how to recognize the signs, and what you can do to bring your system back into balance.</p>
-              <a href="#" class="text-link">Read More &rarr;</a>
-            </div>
-          </article>
-
-          <article class="blog-card fade-in fade-in-delay-2">
-            <div class="blog-card-image">
-              <img src="images/service-hero.png" alt="Simple, nourishing meal with fresh ingredients" class="placeholder-image" style="object-fit: cover; width: 100%; height: 100%;">
-            </div>
-            <div class="blog-card-content">
-              <p class="blog-card-date">[Placeholder] March 8, 2026</p>
-              <h3><a href="#">5 Simple Swaps for a More Nourishing Week</a></h3>
-              <p class="blog-card-excerpt">You don't need a complete overhaul to start feeling better. These five simple swaps can make a meaningful difference in how you feel &mdash; starting this week.</p>
-              <a href="#" class="text-link">Read More &rarr;</a>
-            </div>
-          </article>
-
-          <article class="blog-card fade-in fade-in-delay-3">
-            <div class="blog-card-image">
-              <img src="images/service-education.png" alt="Woman writing and learning in a warm setting" class="placeholder-image" style="object-fit: cover; width: 100%; height: 100%;">
-            </div>
-            <div class="blog-card-content">
-              <p class="blog-card-date">[Placeholder] February 28, 2026</p>
-              <h3><a href="#">Why Sustainable Health Starts With Education</a></h3>
-              <p class="blog-card-excerpt">The difference between following a plan and owning your wellness is understanding. Here's why education is the foundation of every lasting health transformation.</p>
-              <a href="#" class="text-link">Read More &rarr;</a>
-            </div>
-          </article>
-
-          <article class="blog-card fade-in fade-in-delay-1">
-            <div class="blog-card-image">
-              <img src="images/service-wellness.png" alt="Wellness practice for gut health and balance" class="placeholder-image" style="object-fit: cover; width: 100%; height: 100%;">
-            </div>
-            <div class="blog-card-content">
-              <p class="blog-card-date">[Placeholder] February 20, 2026</p>
-              <h3><a href="#">The Connection Between Gut Health and Hormones</a></h3>
-              <p class="blog-card-excerpt">Your gut and your hormones are in constant conversation. When one is out of balance, the other often follows. Learn how to support both systems for whole-body wellness.</p>
-              <a href="#" class="text-link">Read More &rarr;</a>
-            </div>
-          </article>
-
-          <article class="blog-card fade-in fade-in-delay-2">
-            <div class="blog-card-image">
-              <img src="images/about-hero.png" alt="Rooted daily habits and natural rhythms" class="placeholder-image" style="object-fit: cover; width: 100%; height: 100%;">
-            </div>
-            <div class="blog-card-content">
-              <p class="blog-card-date">[Placeholder] February 12, 2026</p>
-              <h3><a href="#">Building Wellness Habits That Actually Stick</a></h3>
-              <p class="blog-card-excerpt">Most wellness habits fail because they're built on willpower instead of understanding. Here's how to create routines that fit your life and grow with you over time.</p>
-              <a href="#" class="text-link">Read More &rarr;</a>
-            </div>
-          </article>
-
-          <article class="blog-card fade-in fade-in-delay-3">
-            <div class="blog-card-image">
-              <img src="images/service-nutrition.png" alt="Fresh whole foods with vibrant produce" class="placeholder-image" style="object-fit: cover; width: 100%; height: 100%;">
-            </div>
-            <div class="blog-card-content">
-              <p class="blog-card-date">[Placeholder] February 5, 2026</p>
-              <h3><a href="#">What Functional Nutrition Really Means</a></h3>
-              <p class="blog-card-excerpt">Functional nutrition is more than a buzzword. It's an approach to eating and living that looks at the whole picture &mdash; your body, your environment, your story &mdash; and builds from there.</p>
-              <a href="#" class="text-link">Read More &rarr;</a>
-            </div>
-          </article>
-
+        <div class="blog-grid" id="blog-grid">
+          <p class="blog-loading" id="blog-loading">Loading posts&hellip;</p>
         </div>
       </div>
     </section>
@@ -239,6 +167,59 @@
 
   <script src="js/main.js"></script>
   <script src="js/quiz-prompt.js"></script>
+
+  <!-- Blog posts from Firestore -->
+  <script type="module" src="js/firebase-public.mjs"></script>
+  <script>
+    (function () {
+      var grid = document.getElementById('blog-grid');
+      if (!grid) return;
+
+      function esc(s) {
+        return String(s == null ? '' : s)
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
+      function fmtDate(iso) {
+        var t = Date.parse(iso);
+        if (isNaN(t)) return '';
+        return new Date(t).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      }
+
+      function render(posts) {
+        if (!posts || posts.length === 0) {
+          grid.innerHTML = '<p class="blog-loading">New articles are on the way &mdash; check back soon.</p>';
+          return;
+        }
+        grid.innerHTML = posts.map(function (p) {
+          var url = 'blog-post.html?slug=' + encodeURIComponent(p.slug || '');
+          var img = p.coverImage
+            ? '<div class="blog-card-image"><img src="' + esc(p.coverImage) + '" alt="' + esc(p.title) + '" class="placeholder-image" style="object-fit:cover;width:100%;height:100%;"></div>'
+            : '';
+          return '<article class="blog-card fade-in">' + img +
+            '<div class="blog-card-content">' +
+              '<p class="blog-card-date">' + esc(fmtDate(p.publishedAt || p.createdAt)) + '</p>' +
+              '<h3><a href="' + url + '">' + esc(p.title) + '</a></h3>' +
+              (p.excerpt ? '<p class="blog-card-excerpt">' + esc(p.excerpt) + '</p>' : '') +
+              '<a href="' + url + '" class="text-link">Read More &rarr;</a>' +
+            '</div></article>';
+        }).join('');
+      }
+
+      function load() {
+        window.hofFirebase.getPublishedPosts()
+          .then(render)
+          .catch(function (err) {
+            console.warn('Blog load failed:', err);
+            grid.innerHTML = '<p class="blog-loading">Couldn&rsquo;t load posts right now. Please refresh.</p>';
+          });
+      }
+
+      if (window.hofFirebase) load();
+      else window.addEventListener('hofFirebaseReady', load, { once: true });
+    })();
+  </script>
+
   <!-- MailerLite Universal -->
   <script>
     (function(w,d,e,u,f,l,n){w[f]=w[f]||function(){(w[f].q=w[f].q||[])

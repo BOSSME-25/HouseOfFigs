@@ -252,43 +252,8 @@
         <div class="section-header fade-in">
           <h2>What Clients Are Saying</h2>
         </div>
-        <div class="testimonials-grid" style="grid-template-columns: repeat(3, 1fr);">
-          <div class="testimonial-card fade-in fade-in-delay-1">
-            <div class="testimonial-quote" aria-hidden="true">&ldquo;</div>
-            <p class="testimonial-text">Working with Bethany completely changed how I think about food and my body. I finally feel like I have a plan that actually works for my life, not against it.</p>
-            <div class="testimonial-author">
-              <div class="testimonial-avatar">S</div>
-              <div class="testimonial-info">
-                <strong>[Placeholder] Sarah M.</strong>
-                <span>Phoenix, AZ</span>
-              </div>
-            </div>
-            <p class="testimonial-placeholder-note">[Placeholder testimonial]</p>
-          </div>
-          <div class="testimonial-card fade-in fade-in-delay-2">
-            <div class="testimonial-quote" aria-hidden="true">&ldquo;</div>
-            <p class="testimonial-text">I came in exhausted and overwhelmed. Bethany helped me understand what was going on with my hormones and gave me real tools to feel like myself again.</p>
-            <div class="testimonial-author">
-              <div class="testimonial-avatar">R</div>
-              <div class="testimonial-info">
-                <strong>[Placeholder] Rachel T.</strong>
-                <span>Scottsdale, AZ</span>
-              </div>
-            </div>
-            <p class="testimonial-placeholder-note">[Placeholder testimonial]</p>
-          </div>
-          <div class="testimonial-card fade-in fade-in-delay-3">
-            <div class="testimonial-quote" aria-hidden="true">&ldquo;</div>
-            <p class="testimonial-text">For the first time, I don't feel like I'm on a diet. I feel like I'm building something that will last. House of Figs gave me that foundation.</p>
-            <div class="testimonial-author">
-              <div class="testimonial-avatar">M</div>
-              <div class="testimonial-info">
-                <strong>[Placeholder] Maria L.</strong>
-                <span>Tempe, AZ</span>
-              </div>
-            </div>
-            <p class="testimonial-placeholder-note">[Placeholder testimonial]</p>
-          </div>
+        <div class="testimonials-grid" id="testimonials-grid" style="grid-template-columns: repeat(3, 1fr);">
+          <p class="blog-loading" id="testimonials-loading">Loading&hellip;</p>
         </div>
         <div class="text-center fade-in" style="margin-top: 2.5rem;">
           <a href="testimonials.html" class="text-link">Read More Testimonials &rarr;</a>
@@ -343,6 +308,12 @@
 
   <script src="js/main.js"></script>
   <script src="js/quiz-prompt.js"></script>
+
+  <!-- Testimonials from Firestore (first 3) -->
+  <script type="module" src="js/firebase-public.mjs"></script>
+  <script src="js/testimonials.js"></script>
+  <script>hofRenderTestimonials('testimonials-grid', 3);</script>
+
   <!-- MailerLite Universal -->
   <script>
     (function(w,d,e,u,f,l,n){w[f]=w[f]||function(){(w[f].q=w[f].q||[])

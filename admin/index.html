@@ -52,6 +52,8 @@
       <button class="tab-btn active" data-tab="overview" role="tab">Overview</button>
       <button class="tab-btn" data-tab="quizzes" role="tab">Quiz responses <span class="badge" id="badge-quizzes">0</span></button>
       <button class="tab-btn" data-tab="intakes" role="tab">Intake forms <span class="badge" id="badge-intakes">0</span></button>
+      <button class="tab-btn" data-tab="blog" role="tab">Blog <span class="badge" id="badge-posts">0</span></button>
+      <button class="tab-btn" data-tab="testimonials" role="tab">Testimonials <span class="badge" id="badge-testimonials">0</span></button>
     </nav>
 
     <main class="admin-main">
@@ -105,7 +107,38 @@
         </div>
       </section>
 
+      <!-- BLOG -->
+      <section id="tab-blog" class="tab-content">
+        <div class="list-header">
+          <h2 class="section-h2">Blog posts</h2>
+          <button class="primary-btn" id="new-post" type="button">+ New post</button>
+        </div>
+        <div id="post-list" class="data-list">
+          <p class="empty">No posts yet. Create your first one.</p>
+        </div>
+      </section>
+
+      <!-- TESTIMONIALS -->
+      <section id="tab-testimonials" class="tab-content">
+        <div class="list-header">
+          <h2 class="section-h2">Testimonials</h2>
+          <button class="primary-btn" id="new-testimonial" type="button">+ New testimonial</button>
+        </div>
+        <div id="testimonial-list" class="data-list">
+          <p class="empty">No testimonials yet. Create your first one.</p>
+        </div>
+      </section>
+
     </main>
+
+    <!-- Editor modal (blog + testimonials) -->
+    <div id="editor-modal" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="modal-backdrop" data-close-editor></div>
+      <div class="modal-content">
+        <button class="modal-close" id="editor-close" type="button" aria-label="Close">&times;</button>
+        <div id="editor-body"></div>
+      </div>
+    </div>
 
     <!-- Detail modal -->
     <div id="detail-modal" class="modal hidden" role="dialog" aria-modal="true">
