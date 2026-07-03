@@ -1210,6 +1210,40 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && !editorModalEl.classList.contains('hidden')) closeEditor();
 });
 
+// ===================================================================
+// In-page confirmation — replaces window.confirm() so the browser's
+// "suppress dialogs" checkbox can never silently disable actions.
+// Returns a Promise<boolean>.
+// ===================================================================
+function hofConfirm(message, confirmLabel = 'Yes, continue', danger = false) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    overlay.innerHTML = `
+      <div class="confirm-box" role="alertdialog" aria-modal="true">
+        <p class="confirm-msg">${escape(message)}</p>
+        <div class="confirm-actions">
+          <button type="button" class="ghost-btn" data-c="no">Cancel</button>
+          <button type="button" class="${danger ? 'danger-btn' : 'primary-btn'}" data-c="yes">${escape(confirmLabel)}</button>
+        </div>
+      </div>`;
+    function done(v) {
+      overlay.remove();
+      document.removeEventListener('keydown', onKey);
+      resolve(v);
+    }
+    function onKey(e) { if (e.key === 'Escape') done(false); }
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) done(false);
+      const btn = e.target.closest('[data-c]');
+      if (btn) done(btn.dataset.c === 'yes');
+    });
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(overlay);
+    overlay.querySelector('[data-c="yes"]').focus();
+  });
+}
+
 function slugify(s) {
   return String(s || '').toLowerCase().trim()
     .replace(/[^a-z0-9]+/g, '-')
@@ -1347,7 +1381,7 @@ async function savePost(id, form) {
 }
 
 async function deletePost(id) {
-  if (!confirm('Delete this post permanently? This cannot be undone.')) return;
+  if (!(await hofConfirm('Delete this post permanently? This cannot be undone.', 'Delete post', true))) return;
   try {
     await deleteDoc(doc(db, 'posts', id));
     closeEditor();
@@ -1475,7 +1509,7 @@ async function saveTestimonial(id, form) {
 }
 
 async function deleteTestimonial(id) {
-  if (!confirm('Delete this testimonial permanently? This cannot be undone.')) return;
+  if (!(await hofConfirm('Delete this testimonial permanently? This cannot be undone.', 'Delete testimonial', true))) return;
   try {
     await deleteDoc(doc(db, 'testimonials', id));
     closeEditor();
@@ -1797,7 +1831,7 @@ function openAssessmentDetail(id) {
 
   const clearHoldBtn = document.getElementById('clear-hold');
   if (clearHoldBtn) clearHoldBtn.addEventListener('click', async () => {
-    if (!confirm('Clear this safety hold? Only do this if your clinical judgment says it\'s safe to proceed. The plan will draft for your review — nothing is sent to the client.')) return;
+    if (!(await hofConfirm('Clear this safety hold? Only do this if your clinical judgment says it\'s safe to proceed. The plan will draft for your review — nothing is sent to the client.', 'Clear hold'))) return;
     const st = document.getElementById('hold-status');
     st.textContent = 'Clearing…';
     try {
@@ -2009,7 +2043,7 @@ async function savePlanDraft(id, approve) {
     statusEl.textContent = 'Blocked — clinical terms present: ' + leaks.join(', ');
     return;
   }
-  if (approve && !confirm(`Send this plan to ${plan.clientEmail}? This emails the client.`)) return;
+  if (approve && !(await hofConfirm(`Send this plan to ${plan.clientEmail}? This emails the client their 30-day plan.`, 'Send plan'))) return;
 
   statusEl.textContent = approve ? 'Approving…' : 'Saving…';
   try {

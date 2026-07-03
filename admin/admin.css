@@ -924,6 +924,37 @@ html, body {
   padding: 1rem 1.1rem;
 }
 
+/* In-page confirmation (replaces window.confirm) */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(44, 44, 44, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000; /* above the detail/editor modals */
+  padding: 1rem;
+}
+.confirm-box {
+  background: var(--color-white);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(44, 44, 44, 0.25);
+  padding: 1.5rem 1.6rem;
+  max-width: 420px;
+  width: 100%;
+}
+.confirm-msg {
+  font-size: 0.9375rem;
+  color: var(--color-text-dark);
+  line-height: 1.6;
+  margin: 0 0 1.25rem;
+}
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
 /* Client journey funnel */
 .funnel-grid {
   display: grid;
