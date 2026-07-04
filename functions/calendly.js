@@ -73,7 +73,7 @@ function registerCalendly({ gmailPassword, makeTransport, FROM_ADDRESS, NOTIFY_T
   // webhook subscription and stores the signing key.
   // -------------------------------------------------------------------
   const calendlySetup = onCall(
-    { secrets: [calendlyToken] },
+    { secrets: [calendlyToken], invoker: 'public' },
     async (request) => {
       const email = (request.auth && request.auth.token && request.auth.token.email || '').toLowerCase();
       if (!request.auth || !ADMIN_EMAILS.includes(email)) {
@@ -121,7 +121,7 @@ function registerCalendly({ gmailPassword, makeTransport, FROM_ADDRESS, NOTIFY_T
   // Webhook — invitee.created / invitee.canceled
   // -------------------------------------------------------------------
   const calendlyWebhook = onRequest(
-    { secrets: [gmailPassword] },
+    { secrets: [gmailPassword], invoker: 'public' },
     async (req, res) => {
       if (req.method !== 'POST') { res.status(405).send('POST only'); return; }
       const db = admin.firestore();
