@@ -1,5 +1,5 @@
 /**
- * House of Figs — Calendly booking gate (Funnel Logic Map T7–T11). v2
+ * House of Figs — Calendly booking gate (Funnel Logic Map T7–T11). v3
  *
  * The 24-hour rule: the intake must be in the system 24 hours before the
  * consult, or the slot releases automatically with a warm rebook path.
