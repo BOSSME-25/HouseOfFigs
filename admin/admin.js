@@ -38,6 +38,12 @@ import {
   getFunctions,
   httpsCallable
 } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-functions.js';
+import {
+  getStorage,
+  ref as storageRef,
+  uploadBytes,
+  getDownloadURL
+} from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js';
 
 // ===================================================================
 // CONFIG — paste from Firebase Console → Project Settings → Web app
@@ -63,6 +69,17 @@ const ALLOWED_EMAILS = [
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
+
+// Upload an image to Storage (blog/…) and return its public URL.
+async function uploadImage(file) {
+  if (!file.type.startsWith('image/')) throw new Error('That file isn’t an image.');
+  if (file.size > 10 * 1024 * 1024) throw new Error('Image is over 10 MB — please resize it first.');
+  const clean = file.name.toLowerCase().replace(/[^a-z0-9.]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
+  const path = 'blog/' + Date.now() + '-' + (clean || 'image');
+  const snap = await uploadBytes(storageRef(storage, path), file, { contentType: file.type });
+  return getDownloadURL(snap.ref);
+}
 
 setPersistence(auth, browserLocalPersistence).catch(console.error);
 
@@ -1372,13 +1389,19 @@ function openPostEditor(id) {
       <label>Excerpt (short teaser shown on the blog list)
         <textarea name="excerpt" rows="2" maxlength="600">${escape(p.excerpt)}</textarea>
       </label>
-      <label>Cover image URL (optional)
-        <input type="text" name="coverImage" value="${escape(p.coverImage)}" placeholder="/images/...">
+      <label>Cover image (optional)
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+          <input type="text" name="coverImage" value="${escape(p.coverImage)}" placeholder="/images/... or upload →" style="flex:1;">
+          <button type="button" class="ghost-btn" id="upload-cover">Upload</button>
+        </div>
       </label>
       <label>Author
         <input type="text" name="author" value="${escape(p.author || '')}">
       </label>
       <label>Body
+        <div style="display:flex;justify-content:flex-end;margin-bottom:0.35rem;">
+          <button type="button" class="ghost-btn" id="insert-image">+ Insert image</button>
+        </div>
         <textarea name="body" rows="14" class="editor-body-field">${escape(p.body)}</textarea>
         <span class="field-hint">Paste straight from Word or Google Docs — headings, bold/italic, lists, and paragraph spacing convert automatically. Or write here: a blank line (Enter twice) starts a new paragraph; a single Enter is a line break; HTML mixes in freely (&lt;strong&gt;, &lt;em&gt;, &lt;a&gt;, &lt;h2&gt;, &lt;ul&gt;, &lt;blockquote&gt;, &lt;img&gt;, &lt;hr&gt;). Use Preview to check the look.</span>
       </label>
@@ -1419,6 +1442,42 @@ function openPostEditor(id) {
   });
   const del = document.getElementById('delete-post');
   if (del) del.addEventListener('click', () => deletePost(id));
+
+  // Image uploads — cover image and in-body images go to Firebase Storage.
+  const statusMsg = document.getElementById('post-status-msg');
+  function pickImage(onDone) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.addEventListener('change', async () => {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      statusMsg.textContent = 'Uploading image…';
+      try {
+        const url = await uploadImage(file);
+        statusMsg.textContent = 'Image uploaded.';
+        onDone(url);
+      } catch (err) {
+        console.error('uploadImage failed:', err);
+        statusMsg.textContent = 'Upload failed: ' + (err.message || err);
+      }
+    });
+    input.click();
+  }
+  document.getElementById('upload-cover').addEventListener('click', () => {
+    pickImage((url) => { form.querySelector('[name="coverImage"]').value = url; });
+  });
+  document.getElementById('insert-image').addEventListener('click', () => {
+    pickImage((url) => {
+      const field = form.querySelector('[name="body"]');
+      const start = field.selectionStart ?? field.value.length;
+      const snippet = '\n\n<img src="' + url + '" alt="">\n\n';
+      field.value = field.value.slice(0, start) + snippet + field.value.slice(field.selectionEnd ?? start);
+      const pos = start + snippet.length;
+      field.focus();
+      field.setSelectionRange(pos, pos);
+    });
+  });
 
   // Pasting from Word/Google Docs: convert the rich clipboard HTML into
   // the clean markup the blog renderer expects, instead of losing all

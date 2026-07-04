@@ -10,26 +10,6 @@
       ],
       "destination": "https://houseoffigs.org/$1",
       "permanent": true
-    },
-    {
-      "source": "/blog.html",
-      "destination": "/",
-      "permanent": false
-    },
-    {
-      "source": "/blog",
-      "destination": "/",
-      "permanent": false
-    },
-    {
-      "source": "/podcast.html",
-      "destination": "/",
-      "permanent": false
-    },
-    {
-      "source": "/podcast",
-      "destination": "/",
-      "permanent": false
     }
   ]
 }
