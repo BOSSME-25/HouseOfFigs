@@ -1300,6 +1300,19 @@ const PILLARS = {
   grove: 'The Grove'
 };
 
+// Preview a draft on the real public page before publishing. The draft is
+// handed over via localStorage (admin + site share the origin) and the page
+// is opened with ?preview=1, which renders it with a "not published" banner.
+function openSitePreview(kind, data, page) {
+  try {
+    localStorage.setItem('hof_preview', JSON.stringify({ kind, data, at: Date.now() }));
+  } catch (err) {
+    alert('Preview failed: ' + (err.message || err));
+    return;
+  }
+  window.open('/' + page + (page.includes('?') ? '&' : '?') + 'preview=1', 'hof-preview');
+}
+
 function renderPostList() {
   const el = document.getElementById('post-list');
   if (!el) return;
@@ -1380,6 +1393,7 @@ function openPostEditor(id) {
           ${isNew ? '' : '<button type="button" class="danger-btn" id="delete-post">Delete</button>'}
         </div>
         <div class="editor-actions-right">
+          <button type="button" class="ghost-btn" id="preview-post">Preview</button>
           <button type="button" class="ghost-btn" id="cancel-editor">Cancel</button>
           <button type="submit" class="primary-btn">Save</button>
         </div>
@@ -1390,6 +1404,19 @@ function openPostEditor(id) {
   const form = document.getElementById('post-form');
   form.addEventListener('submit', (e) => { e.preventDefault(); savePost(id, form); });
   document.getElementById('cancel-editor').addEventListener('click', closeEditor);
+  document.getElementById('preview-post').addEventListener('click', () => {
+    const fd = new FormData(form);
+    openSitePreview('post', {
+      title: (fd.get('title') || 'Untitled').trim() || 'Untitled',
+      slug: slugify(fd.get('slug') || '') || slugify(fd.get('title') || ''),
+      pillar: PILLARS[fd.get('pillar')] ? fd.get('pillar') : '',
+      excerpt: (fd.get('excerpt') || '').trim(),
+      body: (fd.get('body') || '').trim(),
+      coverImage: (fd.get('coverImage') || '').trim(),
+      author: (fd.get('author') || '').trim(),
+      publishedAt: p.publishedAt || new Date().toISOString()
+    }, 'blog-post.html');
+  });
   const del = document.getElementById('delete-post');
   if (del) del.addEventListener('click', () => deletePost(id));
 }
@@ -1592,6 +1619,7 @@ function openTestimonialEditor(id) {
           ${isNew ? '' : '<button type="button" class="danger-btn" id="delete-testimonial">Delete</button>'}
         </div>
         <div class="editor-actions-right">
+          <button type="button" class="ghost-btn" id="preview-testimonial">Preview</button>
           <button type="button" class="ghost-btn" id="cancel-editor-t">Cancel</button>
           <button type="submit" class="primary-btn">Save</button>
         </div>
@@ -1602,6 +1630,14 @@ function openTestimonialEditor(id) {
   const form = document.getElementById('testimonial-form');
   form.addEventListener('submit', (e) => { e.preventDefault(); saveTestimonial(id, form); });
   document.getElementById('cancel-editor-t').addEventListener('click', closeEditor);
+  document.getElementById('preview-testimonial').addEventListener('click', () => {
+    const fd = new FormData(form);
+    openSitePreview('testimonial', {
+      name: (fd.get('name') || 'Client').trim() || 'Client',
+      quote: (fd.get('quote') || '').trim(),
+      context: (fd.get('context') || '').trim()
+    }, 'testimonials.html');
+  });
   const del = document.getElementById('delete-testimonial');
   if (del) del.addEventListener('click', () => deleteTestimonial(id));
 }

@@ -37,23 +37,31 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- Scroll fade-in animations ---
-  const fadeElements = document.querySelectorAll('.fade-in');
+  const fadeObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          fadeObserver.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
+  );
 
-  if (fadeElements.length > 0) {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('visible');
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
-    );
+  document.querySelectorAll('.fade-in').forEach(el => fadeObserver.observe(el));
 
-    fadeElements.forEach(el => observer.observe(el));
-  }
+  // Content rendered after load (blog cards, testimonials from Firestore)
+  // must be re-observed or it stays at the .fade-in hidden state forever.
+  // Anything already on screen reveals immediately — it shouldn't wait for
+  // a scroll that may never come.
+  window.hofObserveFadeIns = function (root) {
+    (root || document).querySelectorAll('.fade-in:not(.visible)').forEach(el => {
+      const r = el.getBoundingClientRect();
+      if (r.top < window.innerHeight && r.bottom > 0) el.classList.add('visible');
+      else fadeObserver.observe(el);
+    });
+  };
 
   // --- Service detail scroll animations ---
   const serviceImages = document.querySelectorAll('.service-detail-image');

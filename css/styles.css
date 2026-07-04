@@ -2520,3 +2520,39 @@ a.pillar-chip:hover {
     grid-template-columns: 1fr;
   }
 }
+
+/* --- Admin content preview (unsaved drafts on the real pages) --- */
+.preview-banner {
+  position: sticky;
+  top: 0;
+  z-index: 400;
+  background-color: #722F45;
+  color: #F5EFE6;
+  text-align: center;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  padding: 0.65rem 1.25rem;
+  box-shadow: 0 4px 14px rgba(74, 55, 40, 0.25);
+}
+
+.preview-card-wrap {
+  outline: 2px dashed #722F45;
+  outline-offset: 6px;
+  border-radius: 12px;
+  position: relative;
+}
+
+.preview-card-wrap::before {
+  content: 'Preview';
+  position: absolute;
+  top: -0.85rem;
+  left: 0.75rem;
+  z-index: 1;
+  background-color: #722F45;
+  color: #F5EFE6;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+}

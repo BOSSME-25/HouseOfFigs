@@ -190,7 +190,23 @@
           '</div>';
       }
 
+      // Admin preview: render an unsaved draft handed over via localStorage
+      // (see openSitePreview in admin.js) instead of fetching from Firestore.
+      function tryPreview() {
+        if (new URLSearchParams(window.location.search).get('preview') !== '1') return false;
+        var draft = null;
+        try { draft = JSON.parse(localStorage.getItem('hof_preview') || 'null'); } catch (e) {}
+        if (!draft || draft.kind !== 'post') return false;
+        var banner = document.createElement('div');
+        banner.className = 'preview-banner';
+        banner.textContent = 'Preview — this is how the post will look. It is NOT published yet; close this tab and Save in the dashboard.';
+        document.body.prepend(banner);
+        render(draft.data);
+        return true;
+      }
+
       function load() {
+        if (tryPreview()) return;
         var slug = new URLSearchParams(window.location.search).get('slug');
         if (!slug) { notFound(); return; }
         window.hofFirebase.getPostBySlug(slug)
