@@ -35,6 +35,11 @@
     .article-body h2, .article-body h3 { font-family: 'Cormorant Garamond', Georgia, serif; color: #4A3728; margin: 2rem 0 0.75rem; }
     .article-body a { color: #8B5E5A; }
     .article-body ul, .article-body ol { margin: 0 0 1.4rem 1.25rem; line-height: 1.8; }
+    .article-body ul { list-style: disc; }
+    .article-body ol { list-style: decimal; }
+    .article-body blockquote { margin: 2rem 0; padding: 0.25rem 0 0.25rem 1.5rem; border-left: 3px solid #6B7F5E; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1.375rem; font-style: italic; color: #4A3728; }
+    .article-body hr { margin: 2.5rem auto; border: none; border-top: 1px solid #ece2cf; width: 60%; }
+    .article-body img { border-radius: 12px; margin: 2rem 0; }
     .article-cta { margin-top: 3rem; padding-top: 2rem; border-top: 1px solid #ece2cf; }
   </style>
 </head>
@@ -133,15 +138,23 @@
         if (isNaN(t)) return '';
         return new Date(t).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
       }
-      // Turn plain-text (blank-line separated) into paragraphs, while leaving
-      // any existing block-level HTML the author wrote untouched.
+      // Turn the editor body into article HTML, chunk by chunk, so plain
+      // text and HTML can be mixed freely:
+      //   - a blank line always starts a new paragraph (with spacing)
+      //   - a single line break inside a paragraph becomes <br>
+      //   - chunks that are already block-level HTML (<h2>, <ul>, <div>,
+      //     <blockquote>, <img>, <hr>, …) pass through untouched
+      //   - inline HTML (<strong>, <em>, <a>) works inside text paragraphs
       function bodyHtml(body) {
         var raw = String(body || '').trim();
         if (!raw) return '';
-        if (/<(p|h[1-6]|ul|ol|blockquote|div)[ >]/i.test(raw)) return raw;
-        return raw.split(/\n{2,}/).map(function (para) {
-          return '<p>' + esc(para).replace(/\n/g, '<br>') + '</p>';
-        }).join('');
+        var BLOCK = /^<(p|h[1-6]|ul|ol|li|blockquote|div|figure|figcaption|hr|img|table|pre|section|iframe|video|audio)[\s>\/]/i;
+        return raw.split(/\n\s*\n/).map(function (chunk) {
+          chunk = chunk.trim();
+          if (!chunk) return '';
+          if (BLOCK.test(chunk)) return chunk;
+          return '<p>' + chunk.replace(/\n/g, '<br>') + '</p>';
+        }).join('\n');
       }
 
       function notFound() {

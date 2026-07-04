@@ -1380,7 +1380,7 @@ function openPostEditor(id) {
       </label>
       <label>Body
         <textarea name="body" rows="14" class="editor-body-field">${escape(p.body)}</textarea>
-        <span class="field-hint">Write in plain paragraphs — a blank line starts a new paragraph. Basic HTML (&lt;strong&gt;, &lt;em&gt;, &lt;a&gt;, lists) is allowed.</span>
+        <span class="field-hint">A blank line (press Enter twice) starts a new paragraph with spacing; a single Enter is a line break. HTML mixes in freely: &lt;strong&gt;, &lt;em&gt;, &lt;a&gt; inside text, and &lt;h2&gt;, &lt;ul&gt;, &lt;blockquote&gt;, &lt;img&gt;, &lt;hr&gt; on their own lines. Use Preview to check the look.</span>
       </label>
       <label class="editor-status">Status
         <select name="status">
