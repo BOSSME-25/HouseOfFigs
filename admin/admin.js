@@ -34,6 +34,10 @@ import {
   updateDoc,
   deleteDoc
 } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js';
+import {
+  getFunctions,
+  httpsCallable
+} from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-functions.js';
 
 // ===================================================================
 // CONFIG — paste from Firebase Console → Project Settings → Web app
@@ -72,6 +76,8 @@ let testimonialDocs = [];
 let assessmentDocs = [];
 let planDocs = {};            // intakeId -> plan doc
 let rmiDocs = [];             // Request More Information leads (Entry B)
+let bookingDocs = [];         // Calendly bookings (the 24-hour gate)
+let calendlyConnected = false;
 let leadMeta = {};          // submissionId ("quiz_x"/"intake_x") -> { status, notes, tags }
 let lastSeenIds = new Set(); // for "new" highlighting on first load
 let firstSnapshot = { quizzes: true, intakes: true };
@@ -229,6 +235,17 @@ function initSubscriptions() {
     rmiDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderFunnel();
   }, (err) => console.error('rmi onSnapshot error:', err));
+
+  // Calendly bookings (the 24-hour gate) + connection state
+  onSnapshot(collection(db, 'bookings'), (snap) => {
+    bookingDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderFunnel();
+  }, (err) => console.error('bookings onSnapshot error:', err));
+
+  onSnapshot(doc(db, 'config', 'calendly'), (snap) => {
+    calendlyConnected = snap.exists() && !!snap.data().subscriptionUri;
+    updateCalendlyButton();
+  }, (err) => console.error('config onSnapshot error:', err));
 }
 
 function handleNewItems(kind, docs) {
@@ -1719,6 +1736,46 @@ function renderAssessmentList() {
   );
 }
 
+// ===================================================================
+// Calendly connection (the 24-hour booking gate)
+// ===================================================================
+function updateCalendlyButton() {
+  const btn = document.getElementById('calendly-connect');
+  if (!btn) return;
+  btn.style.display = '';
+  if (calendlyConnected) {
+    btn.textContent = 'Calendly connected ✓';
+    btn.disabled = true;
+  } else {
+    btn.textContent = 'Connect Calendly';
+    btn.disabled = false;
+  }
+}
+
+const calendlyConnectBtn = document.getElementById('calendly-connect');
+if (calendlyConnectBtn) {
+  calendlyConnectBtn.addEventListener('click', async () => {
+    if (calendlyConnected) return;
+    const ok = await hofConfirm(
+      'Connect Calendly? This registers the booking webhook so confirmations, reminders, and the 24-hour intake rule run automatically.',
+      'Connect'
+    );
+    if (!ok) return;
+    calendlyConnectBtn.disabled = true;
+    calendlyConnectBtn.textContent = 'Connecting…';
+    try {
+      const setup = httpsCallable(getFunctions(app, 'us-central1'), 'calendlySetup');
+      await setup({});
+      calendlyConnectBtn.textContent = 'Calendly connected ✓';
+    } catch (err) {
+      console.error('Calendly connect failed:', err);
+      calendlyConnectBtn.disabled = false;
+      calendlyConnectBtn.textContent = 'Connect Calendly';
+      alert('Connection failed: ' + (err.message || err) + '\n\nCheck that the CALENDLY_TOKEN secret is set and the paid plan is active.');
+    }
+  });
+}
+
 // Backfill: create "requested" stubs; the onAssessmentRequested function
 // runs the normal pipeline for each. Nothing is sent to clients.
 const processEarlierBtn = document.getElementById('process-earlier');
@@ -2198,6 +2255,9 @@ function emailOf(d) {
 function computeFunnel() {
   const stages = { quiz: [], prep: [], awaitingGd: [], review: [], ready: [], coaching: [], lookback: [], halted: [] };
   const intakeEmails = new Set(intakeDocs.map(emailOf).filter(Boolean));
+  const bookedEmails = new Set(
+    bookingDocs.filter(b => b.status === 'booked').map(b => String(b.email || '').toLowerCase().trim())
+  );
 
   // Quiz leads who haven't submitted an intake yet (dedupe by email).
   const seenQuiz = new Set();
@@ -2206,7 +2266,7 @@ function computeFunnel() {
     if (!em || intakeEmails.has(em) || seenQuiz.has(em)) continue;
     seenQuiz.add(em);
     stages.quiz.push({
-      name: (q.name || em) + (q.dormantAt ? ' · dormant' : ''),
+      name: (q.name || em) + (bookedEmails.has(em) ? ' · booked' : '') + (q.dormantAt ? ' · dormant' : ''),
       email: em, when: q.emailCapturedAt || q.createdAt,
       open: () => openDetail('quiz', q.id)
     });

@@ -445,3 +445,15 @@ Object.assign(exports, registerRootedPipeline({
   DASHBOARD_URL,
   escape
 }));
+
+// =========================================================================
+// CALENDLY BOOKING GATE — the 24-hour rule (see calendly.js).
+// =========================================================================
+const { registerCalendly } = require('./calendly');
+Object.assign(exports, registerCalendly({
+  gmailPassword,
+  makeTransport,
+  FROM_ADDRESS,
+  NOTIFY_TO,
+  escape
+}));

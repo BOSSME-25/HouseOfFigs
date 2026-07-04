@@ -262,6 +262,12 @@ function registerRootedPipeline({ gmailPassword, makeTransport, emailShell, FROM
     const formType = intake['Form source'] === 'paper-quickstart' ? 'quickstart' : 'full';
     const assessment = runAssessment(intake, { formType });
 
+    // Preserve any journey milestones / prep-sheet edits already on the
+    // doc — e.g. the Calendly booking trigger may have recorded consultAt
+    // before this run, or this is a backfill over a "requested" stub.
+    const prevSnap = await db.collection('assessments').doc(intakeId).get();
+    const prev = prevSnap.exists ? prevSnap.data() : {};
+
     // 3. Tier 1 — store the practitioner-side assessment. Idempotent:
     //    keyed by intake id, so re-runs overwrite rather than duplicate.
     await db.collection('assessments').doc(intakeId).set({
@@ -269,18 +275,19 @@ function registerRootedPipeline({ gmailPassword, makeTransport, emailShell, FROM
       intakeId,
       status: assessment.halted ? 'halted' : 'generated',
       // Stage 5: auto-drafted consult prep sheet (Bethany edits in admin).
-      prepSheet: draftPrepSheet(assessment),
+      prepSheet: (prev.prepSheet && prev.prepSheet.foodGift) ? prev.prepSheet : draftPrepSheet(assessment),
       // Journey milestones — set by admin buttons and functions as the
       // client moves through the funnel. Timestamps, null until reached.
       journey: {
-        consultAt: null,        // scheduled consult datetime (admin-entered)
+        consultAt: null,        // scheduled consult datetime
         consultHeldAt: null,    // set by "Mark consult held"
         followUpAt: null,       // scheduled follow-up datetime
         email1SentAt: null,     // post-consult handoff email
         email2SentAt: null,     // the single day-3/4 nudge
-        gdReturnedAt: null      // Going Deeper form received
+        gdReturnedAt: null,     // Going Deeper form received
+        ...(prev.journey || {})
       },
-      createdAt: now,
+      createdAt: prev.createdAt || now,
       updatedAt: now
     });
 
@@ -972,4 +979,4 @@ function registerRootedPipeline({ gmailPassword, makeTransport, emailShell, FROM
   return { onIntakeAssessment, onAssessmentRequested, onGoingDeeperCreated, onHoldCleared, onPlanApproved, onConsultHeld, onRmiCreated, dailyNudges };
 }
 
-module.exports = { registerRootedPipeline, leakCheck, planText, PLAN_SCHEMA, buildDraftPrompt, DRAFT_SYSTEM };
+module.exports = { registerRootedPipeline, leakCheck, planText, PLAN_SCHEMA, buildDraftPrompt, DRAFT_SYSTEM, personalEmail, fmtWhen };
