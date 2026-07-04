@@ -76,6 +76,7 @@ let testimonialDocs = [];
 let assessmentDocs = [];
 let planDocs = {};            // intakeId -> plan doc
 let rmiDocs = [];             // Request More Information leads (Entry B)
+let groveDocs = [];           // Ask the Grove questions (From the Orchard)
 let bookingDocs = [];         // Calendly bookings (the 24-hour gate)
 let calendlyConnected = false;
 let leadMeta = {};          // submissionId ("quiz_x"/"intake_x") -> { status, notes, tags }
@@ -235,6 +236,15 @@ function initSubscriptions() {
     rmiDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderFunnel();
   }, (err) => console.error('rmi onSnapshot error:', err));
+
+  // Ask the Grove questions (From the Orchard blog)
+  onSnapshot(collection(db, 'grove'), (snap) => {
+    groveDocs = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+    renderGroveList();
+    setText('badge-grove', groveDocs.filter(g => !g.answeredAt).length);
+  }, (err) => console.error('grove onSnapshot error:', err));
 
   // Calendly bookings (the 24-hour gate) + connection state
   onSnapshot(collection(db, 'bookings'), (snap) => {
@@ -1280,6 +1290,16 @@ function slugify(s) {
 // ===================================================================
 // CMS — Blog posts
 // ===================================================================
+
+// The four From the Orchard pillars — every post belongs to exactly one
+// (Blog Addendum). Keys must match blog.html / blog-post.html.
+const PILLARS = {
+  trellis: 'The Trellis',
+  fallow: 'The Fallow',
+  vine: 'Off the Vine',
+  grove: 'The Grove'
+};
+
 function renderPostList() {
   const el = document.getElementById('post-list');
   if (!el) return;
@@ -1293,10 +1313,13 @@ function renderPostList() {
       : '<span class="status-chip status-draft">Draft</span>';
     const date = d.publishedAt || d.updatedAt || d.createdAt;
     const excerpt = d.excerpt ? escape(d.excerpt) : '<em>No excerpt</em>';
+    const pillarChip = d.pillar && PILLARS[d.pillar]
+      ? `<span class="status-chip" style="background:rgba(114,47,69,0.1);color:#722F45;">${escape(PILLARS[d.pillar])}</span>`
+      : '<span class="status-chip status-draft">No pillar</span>';
     return `
       <div class="data-row cms-row" data-id="${escape(d.id)}" data-kind="post">
         <div class="row-main">
-          <div class="row-title">${escape(d.title || 'Untitled')} ${chip}</div>
+          <div class="row-title">${escape(d.title || 'Untitled')} ${pillarChip} ${chip}</div>
           <div class="row-sub">${excerpt}</div>
         </div>
         <div class="row-time">${formatTime(date)}</div>
@@ -1312,7 +1335,7 @@ function openPostEditor(id) {
   const isNew = !post;
   const p = post || {
     title: '', slug: '', excerpt: '', body: '',
-    coverImage: '', author: 'Bethany Grissum', status: 'draft'
+    coverImage: '', author: 'Bethany Grissum', status: 'draft', pillar: ''
   };
   openEditor(`
     <h2>${isNew ? 'New blog post' : 'Edit blog post'}</h2>
@@ -1323,6 +1346,15 @@ function openPostEditor(id) {
       <label>Slug (web address)
         <input type="text" name="slug" value="${escape(p.slug)}" placeholder="auto-filled from title">
         <span class="field-hint">Lowercase letters, numbers, and hyphens. Leave blank to auto-fill. Shows as /blog/&lt;slug&gt;.</span>
+      </label>
+      <label>Pillar (the post's From the Orchard category)
+        <select name="pillar">
+          <option value="" ${!p.pillar ? 'selected' : ''}>— Choose a pillar —</option>
+          ${Object.entries(PILLARS).map(([k, name]) =>
+            `<option value="${k}" ${p.pillar === k ? 'selected' : ''}>${name}</option>`
+          ).join('')}
+        </select>
+        <span class="field-hint">Every post belongs to exactly one pillar: Trellis (big changes), Fallow (rest), Off the Vine (myths), Grove (reader questions).</span>
       </label>
       <label>Excerpt (short teaser shown on the blog list)
         <textarea name="excerpt" rows="2" maxlength="600">${escape(p.excerpt)}</textarea>
@@ -1376,9 +1408,12 @@ async function savePost(id, form) {
   const status = fd.get('status') === 'published' ? 'published' : 'draft';
   const existing = id ? postDocs.find(p => p.id === id) : null;
 
+  const pillar = PILLARS[fd.get('pillar')] ? fd.get('pillar') : '';
+
   const data = {
     title,
     slug,
+    pillar,
     excerpt: (fd.get('excerpt') || '').trim(),
     body: (fd.get('body') || '').trim(),
     coverImage: (fd.get('coverImage') || '').trim(),
@@ -1418,6 +1453,81 @@ async function deletePost(id) {
 }
 
 document.getElementById('new-post').addEventListener('click', () => openPostEditor(null));
+
+// ===================================================================
+// Ask the Grove — reader questions from the From the Orchard blog
+// ===================================================================
+function renderGroveList() {
+  const el = document.getElementById('grove-list');
+  if (!el) return;
+  if (groveDocs.length === 0) {
+    el.innerHTML = '<p class="empty">No questions planted yet.</p>';
+    return;
+  }
+  el.innerHTML = groveDocs.map(g => {
+    const chip = g.answeredAt
+      ? '<span class="status-chip status-published">Answered</span>'
+      : '<span class="status-chip status-draft">New</span>';
+    const who = [g.name, g.email].filter(Boolean).join(' · ') || 'Anonymous';
+    const q = String(g.question || '');
+    const preview = q.length > 140 ? q.slice(0, 137) + '…' : q;
+    return `
+      <div class="data-row grove-row" data-id="${escape(g.id)}">
+        <div class="row-main">
+          <div class="row-title">${escape(who)} ${chip}</div>
+          <div class="row-sub">${escape(preview)}</div>
+        </div>
+        <div class="row-time">${formatTime(g.createdAt)}</div>
+      </div>`;
+  }).join('');
+  el.querySelectorAll('.grove-row').forEach(row =>
+    row.addEventListener('click', () => openGroveDetail(row.dataset.id))
+  );
+}
+
+function openGroveDetail(id) {
+  const g = groveDocs.find(x => x.id === id);
+  if (!g) return;
+  const who = [g.name, g.email].filter(Boolean).join(' · ') || 'Anonymous';
+  modalBodyEl.innerHTML = (`
+    <h2>Ask the Grove</h2>
+    <p style="color:#897866;font-size:0.875rem;margin:0 0 1rem;">
+      ${escape(who)} &middot; ${formatTime(g.createdAt)}
+      ${g.answeredAt ? ' &middot; Answered ' + formatTime(g.answeredAt) : ''}
+    </p>
+    <p style="white-space:pre-wrap;line-height:1.7;">${escape(g.question || '')}</p>
+    <div style="display:flex;gap:0.5rem;margin-top:1.5rem;flex-wrap:wrap;">
+      <button class="primary-btn" id="grove-answer-post" type="button">Answer as a Grove post</button>
+      <button class="ghost-btn" id="grove-toggle-answered" type="button">
+        ${g.answeredAt ? 'Mark as unanswered' : 'Mark as answered'}
+      </button>
+    </div>
+  `);
+  modalEl.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('grove-answer-post').addEventListener('click', () => {
+    closeDetail();
+    // Pre-fill a Grove-pillar post from the question.
+    openPostEditor(null);
+    const form = document.getElementById('post-form');
+    if (form) {
+      form.querySelector('[name="pillar"]').value = 'grove';
+      form.querySelector('[name="body"]').value =
+        'From the Grove: “' + String(g.question || '').trim() + '”\n\n';
+    }
+  });
+  document.getElementById('grove-toggle-answered').addEventListener('click', async () => {
+    try {
+      await updateDoc(doc(db, 'grove', id), {
+        answeredAt: g.answeredAt ? null : new Date().toISOString()
+      });
+      closeDetail();
+    } catch (err) {
+      console.error('grove toggle failed:', err);
+      alert('Update failed: ' + (err.message || err));
+    }
+  });
+}
 
 // ===================================================================
 // CMS — Testimonials

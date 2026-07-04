@@ -66,6 +66,12 @@ window.hofFirebase = {
     return ref.id;
   },
 
+  async addGroveQuestion(data) {
+    if (!db) throw new Error('Firestore not initialized');
+    const ref = await addDoc(collection(db, 'grove'), data);
+    return ref.id;
+  },
+
   async writeGoingDeeper(intakeId, data) {
     if (!db) throw new Error('Firestore not initialized');
     if (!intakeId) throw new Error('intakeId required');

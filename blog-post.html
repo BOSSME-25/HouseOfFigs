@@ -55,8 +55,13 @@
           <li><a href="about.html">About</a></li>
           <li><a href="services.html">Services</a></li>
           <li><a href="testimonials.html">Testimonials</a></li>
-          <li><a href="blog.html">Blog</a></li>
-          <li><a href="podcast.html">Podcast</a></li>
+          <li class="nav-dropdown">
+            <a href="ripening.html">The Ripening<span class="nav-caret" aria-hidden="true">&#9662;</span></a>
+            <ul class="nav-sub">
+              <li><a href="podcast.html">Podcast</a></li>
+              <li><a href="blog.html">From the Orchard</a></li>
+            </ul>
+          </li>
           <li><a href="contact.html">Contact</a></li>
         </ul>
         <a href="https://figatry.com" target="_blank" rel="noopener" class="nav-figatry"><span class="nav-figatry-mark">Fig&middot;atry</span> &rarr;</a>
@@ -69,7 +74,7 @@
     <section class="section section--white">
       <div class="container">
         <div class="article-wrap">
-          <a href="blog.html" class="article-back">&larr; All articles</a>
+          <a href="blog.html" class="article-back">&larr; From the Orchard</a>
           <div id="article"><p class="blog-loading">Loading&hellip;</p></div>
         </div>
       </div>
@@ -91,8 +96,9 @@
           <li><a href="about.html">About</a></li>
           <li><a href="services.html">Services</a></li>
           <li><a href="testimonials.html">Testimonials</a></li>
-          <li><a href="blog.html">Blog</a></li>
-          <li><a href="podcast.html">Podcast</a></li>
+          <li><a href="ripening.html">The Ripening</a></li>
+          <li class="footer-subnav"><a href="podcast.html">Podcast</a></li>
+          <li class="footer-subnav"><a href="blog.html">From the Orchard</a></li>
           <li><a href="contact.html">Contact</a></li>
         </ul>
       </div>
@@ -146,18 +152,39 @@
           '<a href="blog.html">Browse all articles &rarr;</a></p>';
       }
 
+      // The four From the Orchard pillars (must match blog.html).
+      var PILLAR_NAMES = {
+        trellis: 'The Trellis',
+        fallow: 'The Fallow',
+        vine: 'Off the Vine',
+        grove: 'The Grove'
+      };
+
+      // Standing care note — compact version, in the footer of every post
+      // (From the Orchard Blog Addendum, block 5).
+      var CARE_NOTE =
+        'You are the gardener &mdash; a symptom is just the garden asking for attention. ' +
+        'House of Figs is the almanac, here to decode it and make the tending practical. ' +
+        'Your doctor is the arborist: your greatest asset for what you can&rsquo;t see, understand, ' +
+        'or answer, and the official seal of medical treatment. Tend daily; bring them a clear picture.';
+
       function render(p) {
         if (!p) { notFound(); return; }
-        document.title = p.title + ' | House of Figs';
+        document.title = p.title + ' | From the Orchard · House of Figs';
         var cover = p.coverImage
           ? '<img src="' + esc(p.coverImage) + '" alt="' + esc(p.title) + '" class="article-cover">'
           : '';
         var byline = p.author ? '<p class="article-byline">By ' + esc(p.author) + '</p>' : '';
+        var pillar = p.pillar && PILLAR_NAMES[p.pillar]
+          ? '<a class="pillar-chip" href="blog.html?pillar=' + esc(p.pillar) + '#articles">' + esc(PILLAR_NAMES[p.pillar]) + '</a>'
+          : '';
         mount.innerHTML =
+          pillar +
           '<p class="article-date">' + esc(fmtDate(p.publishedAt || p.createdAt)) + '</p>' +
           '<h1 class="article-title">' + esc(p.title) + '</h1>' +
           byline + cover +
           '<div class="article-body">' + bodyHtml(p.body) + '</div>' +
+          '<div class="post-care-note">' + CARE_NOTE + '</div>' +
           '<div class="article-cta">' +
             '<a href="quiz.html" class="btn btn--primary">Take the Free Quiz &rarr;</a>' +
           '</div>';

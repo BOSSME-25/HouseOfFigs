@@ -2192,3 +2192,331 @@ p {
 
 /* Lock body scroll while the welcome modal is open */
 body.hof-welcome-open { overflow: hidden; }
+
+/* ============================================
+   The Ripening · From the Orchard
+   ============================================ */
+
+/* --- Nav dropdown: "The Ripening" umbrella (Podcast + From the Orchard) --- */
+.nav-dropdown {
+  position: relative;
+}
+
+.nav-dropdown > a .nav-caret {
+  display: inline-block;
+  font-size: 0.55em;
+  margin-left: 0.35em;
+  transform: translateY(-1px);
+}
+
+.nav-sub {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 190px;
+  margin-top: 0.85rem;
+  padding: 0.55rem 0;
+  background-color: var(--color-white);
+  border: 1px solid rgba(212, 197, 178, 0.6);
+  border-radius: 8px;
+  box-shadow: 0 14px 30px rgba(74, 55, 40, 0.14);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--transition-base), visibility var(--transition-base);
+  z-index: 250;
+}
+
+/* Invisible bridge so the pointer can travel from the link to the panel */
+.nav-sub::before {
+  content: '';
+  position: absolute;
+  top: -0.9rem;
+  left: 0;
+  right: 0;
+  height: 0.9rem;
+}
+
+.nav-dropdown:hover .nav-sub,
+.nav-dropdown:focus-within .nav-sub {
+  opacity: 1;
+  visibility: visible;
+}
+
+.nav-sub li {
+  list-style: none;
+}
+
+.nav-sub a {
+  display: block;
+  padding: 0.5rem 1.15rem;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.nav-sub a::after {
+  display: none;
+}
+
+/* Footer Navigate column: indent the two Ripening branches */
+.footer-subnav a {
+  padding-left: 0.85rem;
+  font-size: 0.875rem;
+  opacity: 0.85;
+}
+
+@media (max-width: 768px) {
+  /* In the mobile menu the branches sit inline under The Ripening */
+  .nav-sub {
+    position: static;
+    transform: none;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .nav-sub::before {
+    display: none;
+  }
+
+  .nav-sub a {
+    padding: 0.7rem 0.5rem 0.7rem 1.75rem;
+    font-size: 0.9375rem;
+    border-bottom: 1px solid rgba(212, 197, 178, 0.4);
+    white-space: normal;
+  }
+
+  .nav-dropdown > a .nav-caret {
+    display: none;
+  }
+}
+
+/* --- The Ripening landing: two branch cards --- */
+.branch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.branch-card {
+  background-color: var(--color-white);
+  border-radius: 12px;
+  padding: 2.5rem 2.25rem;
+  box-shadow: 0 4px 20px rgba(74, 55, 40, 0.07);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.branch-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px rgba(74, 55, 40, 0.12);
+}
+
+.branch-eyebrow {
+  font-size: 0.8125rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #722F45;
+  margin-bottom: 0.5rem;
+}
+
+.branch-card h3 {
+  font-size: 1.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.branch-card p {
+  color: #555;
+  margin-bottom: 1.5rem;
+}
+
+.branch-card .btn {
+  margin-top: auto;
+}
+
+/* --- From the Orchard: pillar cards --- */
+.pillar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 2rem;
+}
+
+.pillar-card {
+  background-color: var(--color-white);
+  border-top: 3px solid #722F45;
+  border-radius: 12px;
+  padding: 2.25rem 2rem;
+  box-shadow: 0 4px 20px rgba(74, 55, 40, 0.07);
+  display: flex;
+  flex-direction: column;
+}
+
+.pillar-card h3 {
+  font-size: 1.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.pillar-for {
+  font-style: italic;
+  color: #722F45;
+  margin-bottom: 0.85rem;
+}
+
+.pillar-card p {
+  color: #555;
+  font-size: 0.9688rem;
+  margin-bottom: 1.25rem;
+}
+
+.pillar-card .text-link {
+  margin-top: auto;
+}
+
+.pillar-cycle {
+  text-align: center;
+  font-style: italic;
+  color: #897866;
+  margin-top: 2.5rem;
+}
+
+/* Pillar chip on article cards and the post page */
+.pillar-chip {
+  display: inline-block;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #722F45;
+  background-color: rgba(114, 47, 69, 0.08);
+  border-radius: 999px;
+  padding: 0.2rem 0.7rem;
+  margin-bottom: 0.6rem;
+}
+
+a.pillar-chip:hover {
+  background-color: rgba(114, 47, 69, 0.16);
+  color: #722F45;
+}
+
+/* Filtered pillar view header on the article list */
+.pillar-intro {
+  text-align: center;
+  max-width: 680px;
+  margin: 0 auto 3rem;
+}
+
+.pillar-intro .pillar-for {
+  margin-bottom: 0.5rem;
+}
+
+.pillar-intro p {
+  color: #555;
+}
+
+.pillar-intro .text-link {
+  display: inline-block;
+  margin-top: 0.75rem;
+}
+
+/* --- Standing care note (The Gardener, the Almanac & the Arborist) --- */
+.care-note {
+  max-width: 800px;
+  margin: 0 auto;
+  background-color: var(--color-white);
+  border-left: 3px solid var(--color-olive-leaf);
+  border-radius: 12px;
+  padding: 2.75rem 2.5rem;
+  box-shadow: 0 4px 20px rgba(74, 55, 40, 0.07);
+}
+
+.care-note h2 {
+  font-size: 1.875rem;
+  margin-bottom: 1rem;
+}
+
+.care-note p {
+  color: #444;
+  line-height: 1.85;
+}
+
+/* Compact care note in the footer of every post */
+.post-care-note {
+  margin-top: 3rem;
+  padding: 1.75rem 2rem;
+  background-color: var(--color-soft-cream);
+  border-left: 3px solid var(--color-olive-leaf);
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  line-height: 1.75;
+  color: #555;
+}
+
+/* --- Ask the Grove --- */
+.grove-form-wrap {
+  max-width: 640px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.grove-form-wrap h2 {
+  margin-bottom: 0.5rem;
+}
+
+.grove-subline {
+  color: #722F45;
+  font-style: italic;
+  margin-bottom: 2rem;
+}
+
+.grove-form {
+  text-align: left;
+}
+
+.grove-form label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-deep-fig);
+  margin-bottom: 0.35rem;
+}
+
+.grove-form input,
+.grove-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #ece2cf;
+  border-radius: 8px;
+  background-color: var(--color-white);
+}
+
+.grove-form textarea {
+  resize: vertical;
+}
+
+.grove-field {
+  margin-bottom: 1rem;
+}
+
+.grove-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 600px) {
+  .grove-two {
+    grid-template-columns: 1fr;
+  }
+}

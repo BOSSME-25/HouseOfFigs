@@ -241,6 +241,27 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------
+    // /grove/{autoId} — Ask the Grove questions (From the Orchard blog).
+    // Public write-once from blog.html; admins read and mark answered.
+    // -------------------------------------------------------------------
+    match /grove/{docId} {
+      allow read: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if false;
+      allow create: if validGroveCreate(request.resource.data);
+    }
+
+    function validGroveCreate(d) {
+      return d.keys().hasAll(['question', 'createdAt'])
+        && d.keys().size() <= 10
+        && isString(d.question, 4000)
+        && isOptionalString(d.get('name', null), 200)
+        && (d.get('email', null) == null || isEmail(d.email))
+        && isString(d.createdAt, 50)
+        && isOptionalString(d.get('referer', null), 500);
+    }
+
+    // -------------------------------------------------------------------
     // /bookings/{eventUuid} — Calendly booking gate state (T7–T11).
     // Written exclusively by Cloud Functions; admins read.
     // -------------------------------------------------------------------
