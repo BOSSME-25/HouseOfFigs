@@ -1380,7 +1380,7 @@ function openPostEditor(id) {
       </label>
       <label>Body
         <textarea name="body" rows="14" class="editor-body-field">${escape(p.body)}</textarea>
-        <span class="field-hint">A blank line (press Enter twice) starts a new paragraph with spacing; a single Enter is a line break. HTML mixes in freely: &lt;strong&gt;, &lt;em&gt;, &lt;a&gt; inside text, and &lt;h2&gt;, &lt;ul&gt;, &lt;blockquote&gt;, &lt;img&gt;, &lt;hr&gt; on their own lines. Use Preview to check the look.</span>
+        <span class="field-hint">Paste straight from Word or Google Docs — headings, bold/italic, lists, and paragraph spacing convert automatically. Or write here: a blank line (Enter twice) starts a new paragraph; a single Enter is a line break; HTML mixes in freely (&lt;strong&gt;, &lt;em&gt;, &lt;a&gt;, &lt;h2&gt;, &lt;ul&gt;, &lt;blockquote&gt;, &lt;img&gt;, &lt;hr&gt;). Use Preview to check the look.</span>
       </label>
       <label class="editor-status">Status
         <select name="status">
@@ -1419,6 +1419,127 @@ function openPostEditor(id) {
   });
   const del = document.getElementById('delete-post');
   if (del) del.addEventListener('click', () => deletePost(id));
+
+  // Pasting from Word/Google Docs: convert the rich clipboard HTML into
+  // the clean markup the blog renderer expects, instead of losing all
+  // formatting to the plain textarea.
+  const bodyField = form.querySelector('[name="body"]');
+  bodyField.addEventListener('paste', (e) => {
+    const html = e.clipboardData && e.clipboardData.getData('text/html');
+    if (!html || !/</.test(html)) return; // plain text — let the browser handle it
+    e.preventDefault();
+    const converted = wordHtmlToBody(html);
+    const start = bodyField.selectionStart;
+    const end = bodyField.selectionEnd;
+    bodyField.value = bodyField.value.slice(0, start) + converted + bodyField.value.slice(end);
+    const pos = start + converted.length;
+    bodyField.setSelectionRange(pos, pos);
+  });
+}
+
+// Convert Word / Google Docs clipboard HTML into the editor's format:
+// blank-line-separated paragraphs with a little clean inline HTML
+// (<strong>, <em>, <a>) and block HTML (<h2>, <h3>, <ul>, <ol>,
+// <blockquote>) — exactly what blog-post.html's bodyHtml() renders.
+function wordHtmlToBody(html) {
+  const docEl = new DOMParser().parseFromString(html, 'text/html');
+
+  // Inline content of a node → text with clean inline tags.
+  function inline(node) {
+    let out = '';
+    node.childNodes.forEach((n) => {
+      if (n.nodeType === Node.TEXT_NODE) {
+        out += n.textContent.replace(/[ \s]+/g, ' ');
+        return;
+      }
+      if (n.nodeType !== Node.ELEMENT_NODE) return;
+      const tag = n.tagName.toLowerCase();
+      if (tag === 'br') { out += '\n'; return; }
+      const cs = n.style || {};
+      let inner = inline(n);
+      if (!inner.trim()) { out += inner; return; }
+      // Google Docs wraps whole documents in <b style="font-weight:normal">.
+      const bold = ((tag === 'b' || tag === 'strong') && cs.fontWeight !== 'normal')
+        || parseInt(cs.fontWeight, 10) >= 600 || cs.fontWeight === 'bold';
+      const italic = tag === 'i' || tag === 'em' || cs.fontStyle === 'italic';
+      if (bold) inner = '<strong>' + inner.trim() + '</strong>' + (/\s$/.test(inner) ? ' ' : '');
+      if (italic) inner = '<em>' + inner.trim() + '</em>' + (/\s$/.test(inner) ? ' ' : '');
+      if (tag === 'a' && n.getAttribute('href') && !/^javascript:/i.test(n.getAttribute('href'))) {
+        inner = '<a href="' + n.getAttribute('href') + '">' + inner.trim() + '</a>';
+      }
+      out += inner;
+    });
+    return out;
+  }
+
+  // Strip the fake "·  " / "1.  " prefixes Word puts on list paragraphs.
+  function stripListMarker(s) {
+    return s.replace(/^\s*(?:[·•o§\-•●▪]|\(?\d{1,3}[.)]|[a-z][.)])\s+/i, '').trim();
+  }
+
+  const blocks = []; // { kind: 'p'|'h2'|'h3'|'quote'|'li'|'oli', text }
+  function walk(node) {
+    node.childNodes.forEach((n) => {
+      if (n.nodeType === Node.TEXT_NODE) {
+        const t = n.textContent.trim();
+        if (t) blocks.push({ kind: 'p', text: t });
+        return;
+      }
+      if (n.nodeType !== Node.ELEMENT_NODE) return;
+      const tag = n.tagName.toLowerCase();
+      if (tag === 'style' || tag === 'script' || tag === 'meta' || tag === 'link' || tag === 'xml') return;
+      if (/^h[1-2]$/.test(tag)) { blocks.push({ kind: 'h2', text: inline(n).trim() }); return; }
+      if (/^h[3-6]$/.test(tag)) { blocks.push({ kind: 'h3', text: inline(n).trim() }); return; }
+      if (tag === 'blockquote') { blocks.push({ kind: 'quote', text: inline(n).trim() }); return; }
+      if (tag === 'li') {
+        const listTag = n.parentElement && n.parentElement.tagName.toLowerCase();
+        blocks.push({ kind: listTag === 'ol' ? 'oli' : 'li', text: inline(n).trim() });
+        return;
+      }
+      if (tag === 'p') {
+        const cls = (n.getAttribute('class') || '') + ' ' + ((n.getAttribute('style') || ''));
+        const text = inline(n).trim();
+        if (!text) return;
+        if (/MsoListParagraph|mso-list/i.test(cls)) {
+          const numbered = /^\s*\(?\d{1,3}[.)]\s/.test(text);
+          blocks.push({ kind: numbered ? 'oli' : 'li', text: stripListMarker(text) });
+        } else if (/MsoQuote|MsoIntenseQuote/i.test(cls)) {
+          blocks.push({ kind: 'quote', text });
+        } else {
+          blocks.push({ kind: 'p', text });
+        }
+        return;
+      }
+      walk(n); // div, span wrappers, ul/ol containers, td, etc.
+    });
+  }
+  walk(docEl.body);
+
+  // Assemble: consecutive list items merge into one <ul>/<ol> block.
+  const out = [];
+  let list = null; // { tag, items }
+  function flushList() {
+    if (!list) return;
+    out.push('<' + list.tag + '>' + list.items.map((i) => '<li>' + i + '</li>').join('') + '</' + list.tag + '>');
+    list = null;
+  }
+  blocks.forEach((b) => {
+    if (b.kind === 'li' || b.kind === 'oli') {
+      const tag = b.kind === 'oli' ? 'ol' : 'ul';
+      if (!list || list.tag !== tag) { flushList(); list = { tag, items: [] }; }
+      list.items.push(b.text);
+      return;
+    }
+    flushList();
+    if (!b.text) return;
+    if (b.kind === 'h2') out.push('<h2>' + b.text + '</h2>');
+    else if (b.kind === 'h3') out.push('<h3>' + b.text + '</h3>');
+    else if (b.kind === 'quote') out.push('<blockquote>' + b.text + '</blockquote>');
+    else out.push(b.text);
+  });
+  flushList();
+
+  return out.join('\n\n');
 }
 
 async function savePost(id, form) {
