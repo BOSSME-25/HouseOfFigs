@@ -73,7 +73,10 @@ function registerCalendly({ gmailPassword, makeTransport, FROM_ADDRESS, NOTIFY_T
   // webhook subscription and stores the signing key.
   // -------------------------------------------------------------------
   const calendlySetup = onCall(
-    { secrets: [calendlyToken], invoker: 'public' },
+    // Note: callables ignore the `invoker` option — public access is bound
+    // automatically at CREATE time (which is why a delete+recreate was
+    // needed once the org policy allowed it). In-code auth: admin allowlist.
+    { secrets: [calendlyToken] },
     async (request) => {
       const email = (request.auth && request.auth.token && request.auth.token.email || '').toLowerCase();
       if (!request.auth || !ADMIN_EMAILS.includes(email)) {
