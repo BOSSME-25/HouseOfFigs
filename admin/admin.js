@@ -2114,9 +2114,72 @@ function openAssessmentDetail(id) {
     html += '</div>';
   }
 
+  // Prescribe to Fig·atry — Bethany's "both spaces" prescribing surface.
+  if (a.status !== 'halted' && a.client?.email) {
+    html += `<div class="aw-section aw-plan"><h3>Prescribe to Fig·atry</h3>
+      <p class="aw-muted" style="margin-bottom:0.75rem;">Sends straight to ${escape(a.client.email)}'s app. If they aren't connected yet, it waits for them with an invite code.</p>
+      <div class="editor-form">
+        <label>Type
+          <select id="rx-kind">
+            <option value="goal">Goal</option>
+            <option value="meal">Meal</option>
+            <option value="juice_recipe">Juice recipe</option>
+          </select>
+        </label>
+        <label>Title
+          <input type="text" id="rx-title" placeholder="e.g. Your daily Rainbow pour">
+        </label>
+        <label>Description (optional)
+          <textarea id="rx-desc" rows="2" placeholder="A warm sentence about why / how…"></textarea>
+        </label>
+        <label>Ingredients (for meals & juice — one per line) / cadence (for goals)
+          <textarea id="rx-extra" rows="3" placeholder="a generous handful of spinach&#10;cucumber&#10;fresh lemon — or for a goal: daily"></textarea>
+        </label>
+        <div class="editor-actions">
+          <div class="editor-actions-left"><span class="lead-save-status" id="rx-status"></span></div>
+          <div class="editor-actions-right">
+            <button type="button" class="primary-btn" id="rx-send">Prescribe</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
   modalBodyEl.innerHTML = html;
   modalEl.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
+
+  const rxSend = document.getElementById('rx-send');
+  if (rxSend) rxSend.addEventListener('click', async () => {
+    const st = document.getElementById('rx-status');
+    const kind = document.getElementById('rx-kind').value;
+    const title = document.getElementById('rx-title').value.trim();
+    const description = document.getElementById('rx-desc').value.trim();
+    const extra = document.getElementById('rx-extra').value.trim();
+    if (!title) { st.textContent = 'Add a title.'; return; }
+    rxSend.disabled = true;
+    st.textContent = 'Sending…';
+    try {
+      const call = httpsCallable(getFunctions(app, 'us-central1'), 'prescribeToApp');
+      const payload = { email: a.client.email, kind, title, description };
+      if (kind === 'goal') payload.cadence = extra;
+      else payload.ingredients = extra.split('\n').map(s => s.trim()).filter(Boolean);
+      const { data } = await call(payload);
+      st.textContent = data.status === 'delivered'
+        ? 'Delivered to their app ✓'
+        : data.status === 'pended'
+          ? `Waiting for them — invite code ${data.inviteCode || '(sent previously)'}`
+          : 'Saved — delivers once the coach account exists.';
+      document.getElementById('rx-title').value = '';
+      document.getElementById('rx-desc').value = '';
+      document.getElementById('rx-extra').value = '';
+    } catch (err) {
+      console.error('prescribe failed:', err);
+      st.textContent = 'Failed: ' + (err.message || err);
+    } finally {
+      rxSend.disabled = false;
+    }
+  });
 
   const saveBtn = document.getElementById('plan-save');
   const approveBtn = document.getElementById('plan-approve');

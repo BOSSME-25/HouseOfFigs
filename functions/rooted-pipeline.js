@@ -20,9 +20,72 @@
 
 const { onDocumentCreated, onDocumentUpdated } = require('firebase-functions/v2/firestore');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
+const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
 const Anthropic = require('@anthropic-ai/sdk');
+
+// Fig·atry bridge — prescriptions flow into the client's app.
+const figatrySecret = defineSecret('FIGATRY_BRIDGE_SECRET');
+const FIGATRY_BRIDGE_URL = 'https://figatry.com/api/integrations/hof';
+const COACH_EMAIL = 'bethany@houseoffigs.org';
+
+/**
+ * Push prescriptions to Fig·atry for a client (matched by email).
+ * Returns { status: 'delivered'|'pended'|'coach_missing', inviteCode? }
+ * or null when the bridge is unreachable — callers treat that as
+ * non-fatal (the plan email still goes out).
+ */
+async function sendToFigatry(email, prescriptions) {
+  try {
+    const res = await fetch(FIGATRY_BRIDGE_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-hof-secret': figatrySecret.value()
+      },
+      body: JSON.stringify({ email, coachEmail: COACH_EMAIL, prescriptions })
+    });
+    if (!res.ok) {
+      console.error(`Figatry bridge ${res.status}: ${(await res.text()).slice(0, 200)}`);
+      return null;
+    }
+    return await res.json();
+  } catch (err) {
+    console.error('Figatry bridge unreachable:', err.message);
+    return null;
+  }
+}
+
+/** The plan's app payload: the daily pour + the four weekly emphases. */
+function planPrescriptions(plan, meta) {
+  const out = [];
+  const pourIngredients = Object.values((meta.pour && meta.pour.ingredients) || {});
+  if (pourIngredients.length) {
+    out.push({
+      kind: 'juice_recipe',
+      title: 'Your daily Rainbow pour',
+      details: {
+        description: (plan.pourDescription || '').slice(0, 1000),
+        ingredients: pourIngredients,
+        notes: 'Vegetable-forward and blended — additive, with food.'
+      }
+    });
+  }
+  const themes = meta.weeksFixed || [];
+  for (const w of plan.weeks || []) {
+    const t = themes.find(x => x.week === w.week) || {};
+    out.push({
+      kind: 'goal',
+      title: `Week ${w.week}${t.name ? ' · ' + t.name : ''}: ${w.emphasis}`.slice(0, 200),
+      details: {
+        description: (w.tailoring || '').slice(0, 1000),
+        cadence: `Days ${(w.week - 1) * 7 + 1}–${w.week === 4 ? 30 : w.week * 7}`
+      }
+    });
+  }
+  return out;
+}
 
 const GOING_DEEPER_URL = 'https://houseoffigs.org/going-deeper.html';
 const INTAKE_URL = 'https://houseoffigs.org/intake.html?from=quiz'; // gate pass-through
@@ -527,7 +590,7 @@ function registerRootedPipeline({ gmailPassword, makeTransport, emailShell, FROM
   const onPlanApproved = onDocumentUpdated(
     {
       document: 'plans/{docId}',
-      secrets: [gmailPassword]
+      secrets: [gmailPassword, figatrySecret]
     },
     async (event) => {
       const before = event.data && event.data.before.data();
@@ -552,8 +615,12 @@ function registerRootedPipeline({ gmailPassword, makeTransport, emailShell, FROM
         return;
       }
 
+      // Push the plan into Fig·atry first (pour + weekly goals) so the
+      // email can carry the right app invitation. Non-fatal on failure.
+      const bridge = await sendToFigatry(email, planPrescriptions(plan, after));
+
       const firstName = String(after.clientName || '').trim().split(/\s+/)[0] || 'there';
-      const html = renderPlanEmail(firstName, plan, after);
+      const html = renderPlanEmail(firstName, plan, after, bridge);
 
       const transport = makeTransport();
       await transport.sendMail({
@@ -564,12 +631,17 @@ function registerRootedPipeline({ gmailPassword, makeTransport, emailShell, FROM
         html
       });
 
-      await ref.set({ status: 'sent', sentAt: new Date().toISOString(), updatedAt: new Date().toISOString() }, { merge: true });
+      await ref.set({
+        status: 'sent',
+        sentAt: new Date().toISOString(),
+        figatry: bridge ? { status: bridge.status, inviteCode: bridge.inviteCode || null } : null,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
     }
   );
 
   // Branded client email carrying the full plan.
-  function renderPlanEmail(firstName, plan, meta) {
+  function renderPlanEmail(firstName, plan, meta, bridge) {
     const e = escape;
     const para = (t) => `<p style="font-size:0.9375rem;color:#2C2C2C;line-height:1.7;margin:0 0 16px;">${e(t)}</p>`;
     const h = (t) => `<div style="font-family:Georgia,serif;font-size:1.2rem;color:#4A3728;font-weight:500;margin:26px 0 10px;">${e(t)}</div>`;
@@ -614,6 +686,20 @@ function registerRootedPipeline({ gmailPassword, makeTransport, emailShell, FROM
 
     body += h('Fruit & Forward');
     body += para(plan.closingReframe);
+
+    // Fig·atry — the daily companion. Wording depends on whether the
+    // prescriptions landed in their app or wait behind an invite code.
+    body += h('Your daily companion — Fig·atry');
+    if (bridge && bridge.status === 'delivered') {
+      body += para('Your pour and your four weekly focuses are already waiting in your Fig·atry app — open it and they\'ll be on your home screen, along with a direct line to me.');
+      body += `<p style="font-size:0.9375rem;line-height:1.7;margin:0 0 16px;"><a href="https://figatry.com" style="color:#8B5E5A;">Open Fig·atry &rarr;</a></p>`;
+    } else if (bridge && bridge.status === 'pended' && bridge.inviteCode) {
+      body += para('Fig·atry is the free daily companion where your pour and weekly focuses live, where you check in each day, and where you can message me directly. Setting it up takes two minutes:');
+      body += `<p style="font-size:0.9375rem;line-height:1.7;margin:0 0 16px;">1. Create your free account at <a href="https://figatry.com" style="color:#8B5E5A;">figatry.com</a> (use this email address)<br>2. Choose <strong>Connect with a coach</strong> and enter your code: <strong style="font-size:1.1rem;letter-spacing:0.08em;">${e(bridge.inviteCode)}</strong><br>3. Everything from this plan appears automatically.</p>`;
+    } else {
+      body += para('Fig·atry is the free daily companion app where you\'ll check in each day of our thirty days together — meals, movement, and how you\'re feeling. Create your free account at figatry.com with this email address, and I\'ll connect with you inside.');
+    }
+
     body += para('This plan is meant to walk alongside the care of your doctor, not replace it. Bring any questions it raises to your doctor and to me.');
 
     return `<!doctype html>
@@ -976,7 +1062,39 @@ function registerRootedPipeline({ gmailPassword, makeTransport, emailShell, FROM
     }
   );
 
-  return { onIntakeAssessment, onAssessmentRequested, onGoingDeeperCreated, onHoldCleared, onPlanApproved, onConsultHeld, onRmiCreated, dailyNudges };
+  // -------------------------------------------------------------------
+  // Admin prescribing from the website dashboard ("both spaces"): Bethany
+  // prescribes a goal / meal / juice recipe to a client's Fig·atry from
+  // the assessment detail view. Same bridge as plan-send; the app remains
+  // the single source of truth.
+  // -------------------------------------------------------------------
+  const HOF_ADMIN_EMAILS = ['bethany@houseoffigs.org', 'emily@houseoffigs.org'];
+
+  const prescribeToApp = onCall(
+    { secrets: [figatrySecret] },
+    async (request) => {
+      const adminEmail = ((request.auth && request.auth.token && request.auth.token.email) || '').toLowerCase();
+      if (!request.auth || !HOF_ADMIN_EMAILS.includes(adminEmail)) {
+        throw new HttpsError('permission-denied', 'Admins only.');
+      }
+      const { email, kind, title, description, ingredients, cadence } = request.data || {};
+      if (!email || !['goal', 'meal', 'juice_recipe'].includes(kind) || !String(title || '').trim()) {
+        throw new HttpsError('invalid-argument', 'email, kind, and title are required.');
+      }
+      const details = {};
+      if (description) details.description = String(description).slice(0, 1000);
+      if (Array.isArray(ingredients) && ingredients.length) details.ingredients = ingredients.slice(0, 40).map(String);
+      if (cadence) details.cadence = String(cadence).slice(0, 200);
+
+      const bridge = await sendToFigatry(String(email).toLowerCase().trim(), [
+        { kind, title: String(title).trim().slice(0, 200), details }
+      ]);
+      if (!bridge) throw new HttpsError('unavailable', 'Fig·atry bridge unreachable — try again.');
+      return bridge; // { status: delivered|pended|coach_missing, inviteCode? }
+    }
+  );
+
+  return { onIntakeAssessment, onAssessmentRequested, onGoingDeeperCreated, onHoldCleared, onPlanApproved, onConsultHeld, onRmiCreated, dailyNudges, prescribeToApp };
 }
 
 module.exports = { registerRootedPipeline, leakCheck, planText, PLAN_SCHEMA, buildDraftPrompt, DRAFT_SYSTEM, personalEmail, fmtWhen };
