@@ -99,6 +99,7 @@ let calendlyConnected = false;
 let leadMeta = {};          // submissionId ("quiz_x"/"intake_x") -> { status, notes, tags }
 let lastSeenIds = new Set(); // for "new" highlighting on first load
 let firstSnapshot = { quizzes: true, intakes: true };
+let unsubscribes = [];      // active onSnapshot listeners, torn down on sign-out
 
 // ===================================================================
 // Element refs
@@ -131,6 +132,7 @@ document.getElementById('signout-btn').addEventListener('click', async () => {
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
+    stopSubscriptions();
     showLogin();
     return;
   }
@@ -144,6 +146,7 @@ onAuthStateChanged(auth, async (user) => {
     return;
   }
 
+  loginErrorEl.textContent = '';
   userEmailEl.textContent = user.email;
   showDashboard();
   initSubscriptions();
@@ -175,13 +178,21 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 // ===================================================================
 // Firestore live subscriptions
 // ===================================================================
+function stopSubscriptions() {
+  unsubscribes.forEach(unsub => unsub());
+  unsubscribes = [];
+}
+
 function initSubscriptions() {
+  stopSubscriptions();
+  const listen = (...args) => unsubscribes.push(onSnapshot(...args));
+
   const quizQ = query(
     collection(db, 'quizzes'),
     orderBy('createdAt', 'desc'),
     limit(200)
   );
-  onSnapshot(quizQ, (snap) => {
+  listen(quizQ, (snap) => {
     quizDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     handleNewItems('quizzes', quizDocs);
     renderQuizList();
@@ -198,7 +209,7 @@ function initSubscriptions() {
     orderBy('createdAt', 'desc'),
     limit(200)
   );
-  onSnapshot(intakeQ, (snap) => {
+  listen(intakeQ, (snap) => {
     intakeDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     handleNewItems('intakes', intakeDocs);
     renderIntakeList();
@@ -212,21 +223,21 @@ function initSubscriptions() {
   });
 
   // Blog posts
-  onSnapshot(query(collection(db, 'posts'), orderBy('updatedAt', 'desc')), (snap) => {
+  listen(query(collection(db, 'posts'), orderBy('updatedAt', 'desc')), (snap) => {
     postDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderPostList();
     setText('badge-posts', postDocs.length);
   }, (err) => console.error('posts onSnapshot error:', err));
 
   // Testimonials
-  onSnapshot(query(collection(db, 'testimonials'), orderBy('order', 'asc')), (snap) => {
+  listen(query(collection(db, 'testimonials'), orderBy('order', 'asc')), (snap) => {
     testimonialDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderTestimonialList();
     setText('badge-testimonials', testimonialDocs.length);
   }, (err) => console.error('testimonials onSnapshot error:', err));
 
   // Lead workflow metadata (status / notes / tags), keyed by submission id
-  onSnapshot(collection(db, 'leadMeta'), (snap) => {
+  listen(collection(db, 'leadMeta'), (snap) => {
     leadMeta = {};
     snap.docs.forEach(d => { leadMeta[d.id] = d.data(); });
     renderQuizList();
@@ -234,14 +245,14 @@ function initSubscriptions() {
   }, (err) => console.error('leadMeta onSnapshot error:', err));
 
   // Rooted Assessments + plans
-  onSnapshot(query(collection(db, 'assessments'), orderBy('createdAt', 'desc')), (snap) => {
+  listen(query(collection(db, 'assessments'), orderBy('createdAt', 'desc')), (snap) => {
     assessmentDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderAssessmentList();
     setText('badge-assessments', assessmentDocs.length);
     renderFunnel();
   }, (err) => console.error('assessments onSnapshot error:', err));
 
-  onSnapshot(collection(db, 'plans'), (snap) => {
+  listen(collection(db, 'plans'), (snap) => {
     planDocs = {};
     snap.docs.forEach(d => { planDocs[d.id] = { id: d.id, ...d.data() }; });
     renderAssessmentList();
@@ -249,13 +260,13 @@ function initSubscriptions() {
   }, (err) => console.error('plans onSnapshot error:', err));
 
   // RMI leads (Entry B) — feed the funnel's first stage
-  onSnapshot(collection(db, 'rmi'), (snap) => {
+  listen(collection(db, 'rmi'), (snap) => {
     rmiDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderFunnel();
   }, (err) => console.error('rmi onSnapshot error:', err));
 
   // Ask the Grove questions (From the Orchard blog)
-  onSnapshot(collection(db, 'grove'), (snap) => {
+  listen(collection(db, 'grove'), (snap) => {
     groveDocs = snap.docs
       .map(d => ({ id: d.id, ...d.data() }))
       .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
@@ -264,12 +275,12 @@ function initSubscriptions() {
   }, (err) => console.error('grove onSnapshot error:', err));
 
   // Calendly bookings (the 24-hour gate) + connection state
-  onSnapshot(collection(db, 'bookings'), (snap) => {
+  listen(collection(db, 'bookings'), (snap) => {
     bookingDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderFunnel();
   }, (err) => console.error('bookings onSnapshot error:', err));
 
-  onSnapshot(doc(db, 'config', 'calendly'), (snap) => {
+  listen(doc(db, 'config', 'calendly'), (snap) => {
     calendlyConnected = snap.exists() && !!snap.data().subscriptionUri;
     updateCalendlyButton();
   }, (err) => console.error('config onSnapshot error:', err));
