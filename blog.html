@@ -75,15 +75,15 @@
 
   <main>
 
-    <!-- MASTHEAD -->
-    <section class="hero hero--page">
-      <div class="hero-bg">
-        <img src="images/service-wellness.png" alt="Open journal beside a cup of tea in warm morning light" class="hero-bg-image" aria-hidden="true">
-      </div>
-      <div class="hero-overlay"></div>
-      <div class="hero-content">
-        <h1>The Ripening &middot; From the Orchard</h1>
-        <p>Where roots become fruit &mdash; and questions find their footing.</p>
+    <!-- MASTHEAD (matches the branded document header) -->
+    <section class="orchard-masthead">
+      <img src="images/logo.png" alt="House of Figs" class="orchard-masthead-logo">
+      <p class="orchard-eyebrow">House of Figs <span class="orchard-eyebrow-dot">&middot;</span> Blog</p>
+      <h1>The Ripening &middot; From the Orchard</h1>
+      <p class="orchard-tagline">Where roots become fruit &mdash; and questions find their footing.</p>
+      <p class="orchard-diamonds" aria-hidden="true"><span>&#9670;</span><span>&#9670;</span><span>&#9670;</span></p>
+      <div class="pillar-rule" id="masthead-pillar-rule" hidden>
+        <span class="pillar-rule-name"></span><span class="pillar-rule-for"></span>
       </div>
     </section>
 
@@ -310,6 +310,13 @@
       }
 
       function renderPillarIntro() {
+        // Masthead pillar rule — "OFF THE VINE — for the myths" between lines.
+        var rule = document.getElementById('masthead-pillar-rule');
+        if (rule && activePillar) {
+          rule.querySelector('.pillar-rule-name').textContent = PILLARS[activePillar].name;
+          rule.querySelector('.pillar-rule-for').textContent = '— ' + PILLARS[activePillar].tag.replace(/\.$/, '');
+          rule.hidden = false;
+        }
         var mount = document.getElementById('pillar-intro');
         if (!mount) return;
         if (!activePillar) { mount.innerHTML = ''; return; }

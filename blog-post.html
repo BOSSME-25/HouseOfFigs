@@ -76,7 +76,19 @@
   </header>
 
   <main>
-    <section class="section section--white">
+    <!-- MASTHEAD (matches the branded document header) -->
+    <section class="orchard-masthead orchard-masthead--post">
+      <img src="images/logo.png" alt="House of Figs" class="orchard-masthead-logo">
+      <p class="orchard-eyebrow">House of Figs <span class="orchard-eyebrow-dot">&middot;</span> Blog</p>
+      <p class="orchard-masthead-title">The Ripening &middot; From the Orchard</p>
+      <p class="orchard-tagline">Where roots become fruit &mdash; and questions find their footing.</p>
+      <p class="orchard-diamonds" aria-hidden="true"><span>&#9670;</span><span>&#9670;</span><span>&#9670;</span></p>
+      <div class="pillar-rule" id="post-pillar-rule" hidden>
+        <span class="pillar-rule-name"></span><span class="pillar-rule-for"></span>
+      </div>
+    </section>
+
+    <section class="section section--white" style="padding-top: 2.5rem;">
       <div class="container">
         <div class="article-wrap">
           <a href="blog.html" class="article-back">&larr; From the Orchard</a>
@@ -172,6 +184,12 @@
         vine: 'Off the Vine',
         grove: 'The Grove'
       };
+      var PILLAR_FOR = {
+        trellis: 'for the mountains',
+        fallow: 'for the stopping points',
+        vine: 'for the myths',
+        grove: 'for your questions'
+      };
 
       // Standing care note — compact version, in the footer of every post
       // (From the Orchard Blog Addendum, block 5).
@@ -188,11 +206,19 @@
           ? '<img src="' + esc(p.coverImage) + '" alt="' + esc(p.title) + '" class="article-cover">'
           : '';
         var byline = p.author ? '<p class="article-byline">By ' + esc(p.author) + '</p>' : '';
-        var pillar = p.pillar && PILLAR_NAMES[p.pillar]
-          ? '<a class="pillar-chip" href="blog.html?pillar=' + esc(p.pillar) + '#articles">' + esc(PILLAR_NAMES[p.pillar]) + '</a>'
-          : '';
+        // Pillar goes in the masthead rule — "OFF THE VINE — for the myths".
+        if (p.pillar && PILLAR_NAMES[p.pillar]) {
+          var rule = document.getElementById('post-pillar-rule');
+          if (rule) {
+            rule.querySelector('.pillar-rule-name').textContent = PILLAR_NAMES[p.pillar];
+            rule.querySelector('.pillar-rule-for').textContent = '— ' + PILLAR_FOR[p.pillar];
+            rule.hidden = false;
+            rule.querySelector('.pillar-rule-name').onclick = function () {
+              window.location.href = 'blog.html?pillar=' + p.pillar + '#articles';
+            };
+          }
+        }
         mount.innerHTML =
-          pillar +
           '<p class="article-date">' + esc(fmtDate(p.publishedAt || p.createdAt)) + '</p>' +
           '<h1 class="article-title">' + esc(p.title) + '</h1>' +
           byline + cover +
