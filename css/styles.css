@@ -2399,11 +2399,25 @@ body.hof-welcome-open { overflow: hidden; }
 
 .pillar-cycle {
   text-align: center;
-  text-wrap: balance;
+  margin: 2.5rem auto 0;
+}
+
+.pillar-cycle-title {
   font-style: italic;
   color: #897866;
-  max-width: 620px;
-  margin: 2.5rem auto 0;
+  margin-bottom: 0.75rem;
+}
+
+.pillar-cycle-ring {
+  width: 100%;
+  max-width: 480px;
+  height: auto;
+  margin: 0 auto;
+  display: block;
+}
+
+.pillar-cycle-ring a:hover text {
+  fill: #4A3728;
 }
 
 /* Pillar chip on article cards and the post page */
