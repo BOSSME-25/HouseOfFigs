@@ -2344,11 +2344,26 @@ body.hof-welcome-open { overflow: hidden; }
   margin-top: auto;
 }
 
-/* --- From the Orchard: pillar cards --- */
+/* --- From the Orchard: pillar cards ---
+   Always a balanced grid: 4 across, 2×2 on middle widths, stacked on
+   phones — never a 3+1 orphan row. */
 .pillar-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+}
+
+@media (max-width: 1100px) {
+  .pillar-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .pillar-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .pillar-card {
