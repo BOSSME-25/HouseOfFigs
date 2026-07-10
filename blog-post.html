@@ -246,7 +246,14 @@
 
       function load() {
         if (tryPreview()) return;
+        // Served by /api/post (the /blog/<slug> route)? The post is embedded.
+        if (window.__POST__) { render(window.__POST__); return; }
         var slug = new URLSearchParams(window.location.search).get('slug');
+        // Clean URL without the function (e.g. local preview): /blog/<slug>
+        if (!slug) {
+          var m = window.location.pathname.match(/\/blog\/([a-z0-9-]+)\/?$/);
+          if (m) slug = m[1];
+        }
         if (!slug) { notFound(); return; }
         window.hofFirebase.getPostBySlug(slug)
           .then(render)

@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /intake.html
+Disallow: /going-deeper.html
+
+Sitemap: https://houseoffigs.org/sitemap.xml

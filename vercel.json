@@ -1,4 +1,10 @@
 {
+  "rewrites": [
+    {
+      "source": "/blog/:slug",
+      "destination": "/api/post?slug=:slug"
+    }
+  ],
   "redirects": [
     {
       "source": "/(.*)",
