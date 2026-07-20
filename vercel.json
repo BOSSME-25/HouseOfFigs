@@ -3,9 +3,18 @@
     {
       "source": "/blog/:slug",
       "destination": "/api/post?slug=:slug"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
     }
   ],
   "redirects": [
+    {
+      "source": "/blog",
+      "destination": "/blog.html",
+      "permanent": false
+    },
     {
       "source": "/(.*)",
       "has": [
