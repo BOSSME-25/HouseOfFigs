@@ -1616,6 +1616,38 @@ p {
   color: var(--color-white);
 }
 
+.footer-disclaimer {
+  max-width: 820px;
+  margin: 2.5rem auto 0;
+  padding: 1.75rem 1.5rem 0.5rem;
+  border-top: 1px solid rgba(245, 240, 234, 0.14);
+  text-align: center;
+}
+
+.footer-disclaimer p {
+  font-size: 0.8125rem;
+  line-height: 1.75;
+  color: rgba(245, 240, 234, 0.55);
+  margin: 0 auto 0.85rem;
+  max-width: none;
+}
+
+.footer-disclaimer .footer-disclaimer-title {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  font-size: 1.0625rem;
+  color: rgba(245, 240, 234, 0.8);
+  margin-bottom: 0.9rem;
+}
+
+.footer-disclaimer .footer-disclaimer-emphasis {
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-size: 0.71875rem;
+  color: rgba(245, 240, 234, 0.68);
+  margin-bottom: 0;
+}
+
 .footer-bottom {
   max-width: var(--container-max);
   margin: 0 auto;
