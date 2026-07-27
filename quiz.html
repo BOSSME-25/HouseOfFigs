@@ -1164,6 +1164,13 @@
         }, 100);
       }
 
+      // Optional ?src=<slug> on the URL tags where this quiz-taker came
+      // from — a lead magnet, a guide, a specific campaign. Query params
+      // survive even when the referrer is blank, which it often is when
+      // the link is clicked from inside a PDF. Read once at load time so
+      // it's captured even if the visitor navigates within the page.
+      var quizSource = (new URLSearchParams(window.location.search).get('src') || '').slice(0, 100);
+
       // Save the anonymous quiz answers + result directly to Firestore.
       // The user is still anonymous at this point — the email is captured
       // separately when they fill out the gate form.
@@ -1181,6 +1188,7 @@
           userAgent: (navigator.userAgent || '').slice(0, 500),
           referer: (document.referrer || '').slice(0, 500)
         };
+        if (quizSource) payload.source = quizSource;
         whenFirebaseReady(function () {
           window.hofFirebase
             .writeQuizDoc(sessionId, payload)

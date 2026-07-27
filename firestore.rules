@@ -68,7 +68,7 @@ service cloud.firestore {
     function validQuizCreate(d) {
       return d.keys().hasOnly([
             'sessionId', 'answers', 'profile', 'createdAt',
-            'userAgent', 'referer'
+            'userAgent', 'referer', 'source'
           ])
         && d.keys().hasAll(['sessionId', 'answers', 'profile', 'createdAt'])
         && isString(d.sessionId, 200)
@@ -81,7 +81,8 @@ service cloud.firestore {
         && d.profile.keys is list
         && isString(d.createdAt, 50)
         && isOptionalString(d.userAgent, 500)
-        && isOptionalString(d.referer, 500);
+        && isOptionalString(d.referer, 500)
+        && isOptionalString(d.get('source', null), 100);
     }
 
     function validQuizEmailUpdate(before, after) {
