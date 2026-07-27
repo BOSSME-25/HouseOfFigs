@@ -867,6 +867,7 @@ html, body {
 .lead-row-chip.s-contacted { background-color: #dfe7ef; color: #4a6076; }
 .lead-row-chip.s-client { background-color: #e4ecdd; color: #4f6540; }
 .lead-row-chip.s-archived { background-color: #eee; color: #999; }
+.lead-row-chip.s-source { background-color: #f0e4de; color: #8b5e5a; }
 
 /* Rooted Assessment workspace */
 .plan-chip.s-halted { background-color: #f3ded9; color: #a84b42; }

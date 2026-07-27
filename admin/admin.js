@@ -373,10 +373,11 @@ function renderQuizList() {
     const who = d.email
       ? `${escape(d.email)}${d.name ? ' &middot; ' + escape(d.name) : ''}`
       : `<em>No email captured</em>`;
+    const source = d.source ? `<span class="lead-row-chip s-source">${escape(d.source)}</span>` : '';
     return `
       <div class="data-row" data-id="${escape(d.id)}" data-type="quiz">
         <div class="row-main">
-          <div class="row-title">${escape(profile)}${leadChip('quiz', d.id)}</div>
+          <div class="row-title">${escape(profile)}${source}${leadChip('quiz', d.id)}</div>
           <div class="row-sub">${who}${subtitle ? ' &middot; <em>' + escape(subtitle) + '</em>' : ''}</div>
         </div>
         <div class="row-time">${formatTime(d.createdAt)}</div>
