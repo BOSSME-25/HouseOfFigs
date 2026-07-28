@@ -1,0 +1,22 @@
+{
+  "name": "houseoffigs-mcp",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "MCP server exposing House of Figs Firestore data (leads, intakes, assessments, plans) over stdio",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "firebase-admin": "^13.10.0",
+    "zod": "^4.4.3"
+  },
+  "type": "module",
+  "bin": {
+    "houseoffigs-mcp": "./index.js"
+  },
+  "private": true
+}
