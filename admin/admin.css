@@ -767,6 +767,14 @@ html, body {
   box-sizing: border-box;
 }
 .editor-form textarea { resize: vertical; line-height: 1.5; }
+.editor-form label.checkbox-label {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 400;
+  color: var(--color-text-dark);
+}
+.editor-form label.checkbox-label input[type="checkbox"] { width: auto; margin: 0; }
 .editor-body-field { font-family: 'SF Mono', 'Menlo', monospace; font-size: 0.875rem; }
 .editor-form input:focus,
 .editor-form textarea:focus,

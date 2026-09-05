@@ -90,6 +90,11 @@ function planPrescriptions(plan, meta) {
 const GOING_DEEPER_URL = 'https://houseoffigs.org/going-deeper.html';
 const INTAKE_URL = 'https://houseoffigs.org/intake.html?from=quiz'; // gate pass-through
 const BOOKING_URL = 'https://calendly.com/figatry/30min';
+// /begin is the one stable checkout URL every funnel email links to — the
+// page itself holds the real Stripe Payment Link per plan, so a link
+// changing in Stripe never means re-editing every email template.
+const CHECKOUT_URL = 'https://houseoffigs.org/begin';
+const checkoutUrlFor = (plan) => `${CHECKOUT_URL}?plan=${encodeURIComponent(plan)}`;
 
 // Personal-feel formatting for Bethany's follow-up emails (Arizona time).
 function fmtWhen(iso, withTime = true) {
@@ -114,7 +119,7 @@ function personalEmail(paragraphsHtml) {
 }
 
 const { runAssessment } = require('./rooted-engine');
-const { COLOR_VOICE, COLOR_LABELS, FOOD_GIFTS, LEAK_TERMS } = require('./rooted-data');
+const { COLOR_VOICE, COLOR_LABELS, FOOD_GIFTS, POUR_MAP, LEAK_TERMS } = require('./rooted-data');
 
 // Consult prep sheet auto-draft (Client Journey briefing, Stage 5).
 // Deterministic from the assessment: loudest color = top priority, second
@@ -128,6 +133,8 @@ function draftPrepSheet(assessment) {
     loudestWhy: loudest ? loudest.why : '',
     secondThread: second ? second.label : '',
     foodGift: loudest ? (FOOD_GIFTS[loudest.color] || '') : '',
+    recipe: loudest ? (POUR_MAP[loudest.color] || '') : '',
+    labsMentioned: false,
     safetyFlags: assessment.haltReasons || [],
     notes: ''
   };
@@ -760,7 +767,10 @@ function registerRootedPipeline({ gmailPassword, makeTransport, emailShell, FROM
         .trim().split(/\s+/)[0] || 'there';
       const goal = (after.client && (after.client.goals || after.client.chiefComplaint)) || 'to feel like yourself again';
       const foodGift = (after.prepSheet && after.prepSheet.foodGift) || 'the one small shift we talked about';
+      const recipe = (after.prepSheet && after.prepSheet.recipe) || '';
+      const labsMentioned = !!(after.prepSheet && after.prepSheet.labsMentioned);
       const gdLink = `${GOING_DEEPER_URL}?id=${encodeURIComponent(intakeId)}`;
+      const checkoutLink = checkoutUrlFor('rooted_beginning');
       const followUp = aj.followUpAt ? fmtWhen(aj.followUpAt) : '';
       let returnBy = '';
       if (aj.followUpAt) {
@@ -780,9 +790,11 @@ function registerRootedPipeline({ gmailPassword, makeTransport, emailShell, FROM
       const html = personalEmail(`
         <p>Hi ${e(firstName)},</p>
         <p>Thank you for the conversation today — and for the honesty you brought to it. What stayed with me is that you want ${e(goal)}, and that's exactly what we'll build toward.</p>
-        <p>Before anything else, the one thing from our call: <strong>${e(foodGift)}</strong>. Small, but it starts feeding exactly the system that's been asking. Notice what shifts — even a little.</p>
-        <p>Your next step is the Going Deeper form: <a href="${e(gdLink)}" style="color:#8B5E5A;">${e(gdLink)}</a>. It takes about fifteen to twenty minutes and completes the picture your first intake began — so the thirty-day plan I build fits the life you're actually living, not a template.${returnBy ? ` If you can, have it back to me by <strong>${e(returnBy)}</strong>, so I have time to sit with it properly before we talk.` : ''}</p>
+        <p>Before anything else, the one thing from our call: <strong>${e(foodGift)}</strong>. Small, but it starts feeding exactly the system that's been asking. Your custom juice recipe is written out at the bottom of this note, so you have it in one place.</p>
+        <p>Your next step is two things that go together. The first is the Going Deeper form: <a href="${e(gdLink)}" style="color:#8B5E5A;">${e(gdLink)}</a>. It takes about fifteen to twenty minutes and completes the picture your first intake began — so the thirty-day plan I build fits the life you're actually living, not a template.${returnBy ? ` If you can, have it back to me by <strong>${e(returnBy)}</strong>, so I have time to sit with it properly before we talk.` : ''}${labsMentioned ? ' And if it\'s easy to lay hands on those results you mentioned, attach them when you send the form — no need to chase anything down.' : ''}</p>
+        <p>The second is securing your spot: <a href="${e(checkoutLink)}" style="color:#8B5E5A;">${e(checkoutLink)}</a>. It's $797, or $425 to begin and $425 once your plan is ready. Once both are in, I sit down with your story properly and the work begins.</p>
         ${followUp ? `<p>We're on the calendar for <strong>${e(followUp)}</strong>. I'm looking forward to it.</p>` : ''}
+        ${recipe ? `<div style="margin-top:24px;padding-top:16px;border-top:1px solid #ece2cf;"><p style="margin:0;"><strong>Your pour to try this week:</strong> ${e(recipe)}</p></div>` : ''}
       `);
 
       const transport = makeTransport();
@@ -900,12 +912,13 @@ function registerRootedPipeline({ gmailPassword, makeTransport, emailShell, FROM
         const firstName = String((a.client.preferredName || a.client.name) || '').trim().split(/\s+/)[0] || 'there';
         const foodGift = (a.prepSheet && a.prepSheet.foodGift) || 'that one small shift';
         const gdLink = `${GOING_DEEPER_URL}?id=${encodeURIComponent(snap.id)}`;
+        const checkoutLink = checkoutUrlFor('rooted_beginning');
         const followUp = j.followUpAt ? fmtWhen(j.followUpAt, false) : '';
 
         const html = personalEmail(`
           <p>Hi ${e(firstName)},</p>
-          <p>Just a soft note — no rush behind it. The Going Deeper form is here whenever you have a quiet fifteen minutes: <a href="${e(gdLink)}" style="color:#8B5E5A;">${e(gdLink)}</a>.</p>
-          <p>${followUp ? `The only reason I ask for it ahead of ${e(followUp)} is so I can read it with care before we talk, instead of during. If the date needs to move to make room, that's easy — just say the word.` : 'The only reason I ask for it ahead of our next conversation is so I can read it with care before we talk, instead of during.'}</p>
+          <p>Just a soft note — no rush behind it. The Going Deeper form is here whenever you have a quiet fifteen minutes: <a href="${e(gdLink)}" style="color:#8B5E5A;">${e(gdLink)}</a>. And when you're ready to secure your spot, this is the link: <a href="${e(checkoutLink)}" style="color:#8B5E5A;">${e(checkoutLink)}</a>.</p>
+          <p>${followUp ? `The only reason I ask for both ahead of ${e(followUp)} is so I can read your story with care before we talk, instead of during. If the date needs to move to make room, that's easy — just say the word.` : 'The only reason I ask for both ahead of our next conversation is so I can read your story with care before we talk, instead of during.'}</p>
           <p>And however the week is going — keep at ${e(foodGift)}. That one small thing is already work worth doing.</p>
         `);
 
