@@ -2429,6 +2429,166 @@ body.hof-welcome-open { overflow: hidden; }
   margin-top: auto;
 }
 
+/* --- Offer Sheet (Ways to Walk) --- */
+.offer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.75rem;
+  margin-top: 2rem;
+}
+
+.offer-card {
+  background-color: var(--color-white);
+  border-radius: 14px;
+  padding: 2.25rem 2rem;
+  box-shadow: 0 4px 20px rgba(74, 55, 40, 0.07);
+  display: flex;
+  flex-direction: column;
+  border-top: 3px solid var(--color-warm-sand);
+}
+
+.offer-card--featured {
+  border-top-color: var(--color-fig-accent);
+  box-shadow: 0 8px 32px rgba(139, 94, 90, 0.16);
+}
+
+.offer-card-eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-olive-leaf);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.offer-card h3 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.offer-card > p {
+  color: #555;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  margin-bottom: 1.25rem;
+}
+
+.offer-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem;
+  flex-grow: 1;
+}
+
+.offer-card ul li {
+  position: relative;
+  padding-left: 1.4rem;
+  margin-bottom: 0.7rem;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--color-text-dark);
+}
+
+.offer-card ul li::before {
+  content: '\2726';
+  position: absolute;
+  left: 0;
+  top: 0.05rem;
+  color: var(--color-fig-accent);
+  font-size: 0.8125rem;
+}
+
+.offer-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem 1rem;
+  padding: 1.1rem 0;
+  border-top: 1px solid #ece2cf;
+  border-bottom: 1px solid #ece2cf;
+  margin-bottom: 1.25rem;
+}
+
+.offer-stats dt {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-olive-leaf);
+  font-weight: 600;
+  margin-bottom: 0.15rem;
+}
+
+.offer-stats dd {
+  font-size: 0.875rem;
+  color: var(--color-text-dark);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.offer-price {
+  font-family: var(--font-heading);
+  font-size: 1.75rem;
+  color: var(--color-deep-fig);
+  margin-bottom: 0.15rem;
+}
+
+.offer-price-note {
+  font-size: 0.8125rem;
+  color: #897866;
+  margin-bottom: 1.25rem;
+}
+
+.offer-card .btn {
+  margin-top: auto;
+  text-align: center;
+}
+
+.offer-section-title {
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto 0.5rem;
+}
+
+.offer-section-sub {
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto;
+  color: #666;
+}
+
+.offer-notes {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.offer-notes li {
+  margin-bottom: 1.1rem;
+  line-height: 1.75;
+  font-size: 0.9688rem;
+}
+
+.offer-quote {
+  max-width: 640px;
+  margin: 0 auto;
+  text-align: center;
+  font-family: var(--font-heading);
+  font-style: italic;
+  font-size: 1.375rem;
+  color: var(--color-deep-fig);
+  line-height: 1.6;
+}
+
+.offer-quote cite {
+  display: block;
+  margin-top: 1rem;
+  font-style: normal;
+  font-size: 0.9375rem;
+  color: #897866;
+}
+
+@media (max-width: 640px) {
+  .offer-stats { grid-template-columns: 1fr; }
+}
+
 .pillar-cycle {
   text-align: center;
   margin: 2.5rem auto 0;

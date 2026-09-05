@@ -376,7 +376,11 @@ const LEAK_TERMS = [
   // Gate C additions (Client Journey briefing): no calorie/macro targets
   // or appearance-based goal language in client-facing output.
   'calorie', 'calories', 'macro', 'macros', 'kcal', 'BMI',
-  'weight target', 'goal weight', 'pounds to lose'
+  'weight target', 'goal weight', 'pounds to lose',
+  // Gate C additions (Fig·atry Paid Tiers addendum): the plan's prose is
+  // read the same whether the client is Coached, on Plus, or mid-consult
+  // — it must never reference the billing/product mechanics underneath it.
+  'tier'
 ];
 
 module.exports = {

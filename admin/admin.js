@@ -2258,8 +2258,16 @@ function prepSheetHtml(a) {
       <label>The one food gift — written before the call
         <textarea id="prep-gift" rows="2">${escape(p.foodGift || '')}</textarea>
       </label>
+      <label>Custom juice recipe — written before the call
+        <textarea id="prep-recipe" rows="2">${escape(p.recipe || '')}</textarea>
+        <span class="field-hint">Starts from the loudest color's juiceable ingredients — turn it into the actual written recipe (ingredients, a line of method, the beeturia note if beet is in it). Email 1 quotes this at the bottom.</span>
+      </label>
       <label>Notes from the call
         <textarea id="prep-notes" rows="3">${escape(p.notes || '')}</textarea>
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" id="prep-labs-mentioned" ${p.labsMentioned ? 'checked' : ''}>
+        Labs came up on the call — Email 1 will invite them to attach results
       </label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
         <label>Consult date &amp; time
@@ -2299,6 +2307,8 @@ async function savePrepSheet(id, markHeld) {
     loudestColor: document.getElementById('prep-loudest').value.trim(),
     secondThread: document.getElementById('prep-second').value.trim(),
     foodGift: document.getElementById('prep-gift').value.trim(),
+    recipe: document.getElementById('prep-recipe').value.trim(),
+    labsMentioned: document.getElementById('prep-labs-mentioned').checked,
     notes: document.getElementById('prep-notes').value.trim()
   };
 
@@ -2312,9 +2322,10 @@ async function savePrepSheet(id, markHeld) {
     j.email1SentAt = 'skipped-manual'; // prevents the automated handoff email
   } else if (markHeld) {
     if (!prepSheet.foodGift) { st.textContent = 'Add the food gift first — Email 1 quotes it.'; return; }
+    if (!prepSheet.recipe) { st.textContent = 'Add the juice recipe first — Email 1 quotes it.'; return; }
     if (!j.followUpAt) { st.textContent = 'Set the follow-up date first — Email 1 references it.'; return; }
     const ok = await hofConfirm(
-      `Mark the consult held? This sends ${a.client?.name || 'the client'} the handoff email with the Going Deeper link and the food gift ("${prepSheet.foodGift}").`,
+      `Mark the consult held? This sends ${a.client?.name || 'the client'} the handoff email with the Going Deeper link, the checkout link, the food gift ("${prepSheet.foodGift}"), and the juice recipe.`,
       'Consult held — send email'
     );
     if (!ok) return;
@@ -2365,6 +2376,7 @@ function printPrepSheet(a) {
   <div class="label">Loudest color (the one I will name)</div><div class="box">${escape(p.loudestColor || '')}</div>
   <div class="label">Second thread — noted, not named</div><div class="box">${escape(p.secondThread || '')}</div>
   <div class="label">The one food gift — written before the call</div><div class="box">${escape(p.foodGift || '')}</div>
+  <div class="label">Custom juice recipe — written before the call</div><div class="box">${escape(p.recipe || '')}</div>
   <div class="label">Safety flags — if any, care replaces the ask</div><div class="box flags">${(p.safetyFlags || []).map(escape).join('<br>') || 'None noted.'}</div>
   <div class="label">Notes from the call</div><div class="box" style="min-height:80px;">${escape(p.notes || '')}</div>
   <script>window.addEventListener('load',function(){setTimeout(function(){window.print();},300);});<\/script>
