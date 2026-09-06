@@ -2446,6 +2446,25 @@ body.hof-welcome-open { overflow: hidden; }
   margin-top: 2rem;
 }
 
+/* Exactly 4 cards: fixed column counts, same as .pillar-grid, so it
+   never falls back to auto-fit's 3-then-1-orphan row. */
+.offer-grid--four {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 1100px) {
+  .offer-grid--four {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .offer-grid--four {
+    grid-template-columns: 1fr;
+  }
+}
+
 .offer-card {
   background-color: var(--color-white);
   border-radius: 14px;
