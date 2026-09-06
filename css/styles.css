@@ -1659,6 +1659,15 @@ p {
   color: rgba(245, 240, 234, 0.4);
 }
 
+.footer-bottom a {
+  color: rgba(245, 240, 234, 0.6);
+  text-decoration: underline;
+}
+
+.footer-bottom a:hover {
+  color: rgba(245, 240, 234, 0.9);
+}
+
 /* --- Scroll Animations --- */
 .fade-in {
   opacity: 0;
